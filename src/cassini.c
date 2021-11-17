@@ -1,5 +1,12 @@
-#include "../include/cassini.h"
+#include "../include/cassini.h" // Peut causer des soucis
 #include "stdint.h"
+#include "sys/types.h"
+#include "sys/stat.h"
+#include "fcntl.h"
+#include "unistd.h"
+#include "../include/timing.h"
+#include "../include/timing-text-io.h"
+
 
 const char usage_info[] = "\
    usage: cassini [OPTIONS] -l -> list all tasks\n\
@@ -89,9 +96,56 @@ int main(int argc, char * argv[]) {
   // --------
   // | TODO |
   // --------
+  char * d = "/saturnd-request-pipe";
+  char * chemin = malloc(sizeof(char)*250);
+  strncat(chemin,pipes_directory,50);
+  strncat(chemin,d,50);
+  int fd = open(chemin,O_WRONLY | O_APPEND);
+  // //int t = write(fd,minutes_str,200);
+  // write(fd,"LS",2);
+  // printf("%s %d\n",chemin ,t);
+  // write(fd,operation,200);
+  // write(fd,taskid,200);
   
-  return EXIT_SUCCESS;
+  char buffer[1024];
+  char op[2];
+  switch(operation){
+    case CLIENT_REQUEST_LIST_TASKS : 
+      write(fd,"LS",2);
+      break;
+    
+    case CLIENT_REQUEST_CREATE_TASK :
+      
+      // write(fd,"CR",2);
+      strcpy(buffer,"CR");
+      printf("buffer = %s\n",buffer);
+      // strncat(buffer,"CR",2);
 
+      printf("buffer = %s\n",buffer);
+
+      struct timing * time;
+      int res = timing_from_strings(time,minutes_str,hours_str,daysofweek_str);
+
+
+
+      if(res == 0){
+        perror("failed to convert values : minutes, hours, days to struct timing");
+        goto error;
+      }
+
+      char * buf = malloc(sizeof(char) * res);
+      
+      int res2 = timing_string_from_timing(buf, time);
+      
+      printf("res2 = %d\n",res2);
+      
+      printf("buffer = %s\n",buffer);
+      write(fd,buffer,strlen(buffer));
+      break;
+  }
+
+  return EXIT_SUCCESS;
+  
  error:
   if (errno != 0) perror("main");
   free(pipes_directory);
