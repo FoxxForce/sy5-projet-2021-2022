@@ -6,6 +6,7 @@
 #include "unistd.h"
 #include "../include/timing.h"
 #include "../include/timing-text-io.h"
+#include "../include/string.h"
 
 
 const char usage_info[] = "\
@@ -96,52 +97,47 @@ int main(int argc, char * argv[]) {
   // --------
   // | TODO |
   // --------
-  char * d = "/saturnd-request-pipe";
+  char * request_pipe = "/saturnd-request-pipe";
   char * chemin = malloc(sizeof(char)*250);
-  strncat(chemin,pipes_directory,50);
-  strncat(chemin,d,50);
-  int fd = open(chemin,O_WRONLY | O_APPEND);
-  // //int t = write(fd,minutes_str,200);
-  // write(fd,"LS",2);
-  // printf("%s %d\n",chemin ,t);
-  // write(fd,operation,200);
-  // write(fd,taskid,200);
-  
-  char buffer[1024];
-  char op[2];
+  strncat(chemin, pipes_directory, strlen(pipes_directory));
+  strncat(chemin, request_pipe, strlen(request_pipe));
+  int fd = open(chemin, O_WRONLY | O_APPEND);
+
+  struct timing time;
+  int length_timing = timing_from_strings(&time, minutes_str, hours_str, daysofweek_str);
+
+  char *command = malloc(sizeof(char)*(length_timing + 2 ));
+  char *timing_string = malloc(TIMING_TEXT_MIN_BUFFERSIZE);
+  timing_string_from_timing(timing_string, &time);
+  //strcpy(command, timing_string);
   switch(operation){
-    case CLIENT_REQUEST_LIST_TASKS : 
-      write(fd,"LS",2);
-      break;
-    
+    case CLIENT_REQUEST_LIST_TASKS :
+        write(fd,"LS",2);
+        break;
     case CLIENT_REQUEST_CREATE_TASK :
-      
-      // write(fd,"CR",2);
-      strcpy(buffer,"CR");
-      printf("buffer = %s\n",buffer);
-      // strncat(buffer,"CR",2);
+        strcpy(command, "CR");
+        char *vv = "CR";
+        write(fd, vv, strlen(vv));
+        write(fd, &time, sizeof(struct timing));
+        /*char *hexa_minutes = malloc(sizeof(char)*17);
+        char *hexa_hours = malloc(sizeof(char)*9);
+        char *hexa_daysofweek = malloc(sizeof(char)*3);*/
+        /*sprintf(hexa_minutes, "%016lx", time.minutes );
+        sprintf(hexa_hours, "%08x", time.hours );
+        sprintf(hexa_daysofweek, "%02x", time.daysofweek );
+        strncat(command, hexa_minutes, 17);
+        strncat(command, hexa_hours, 9);
+        strncat(command, hexa_daysofweek, 3);*/
+        //printf("%s, %s, %s\n", hexa_minutes,hexa_hours, hexa_daysofweek);
 
-      printf("buffer = %s\n",buffer);
-
-      struct timing * time;
-      int res = timing_from_strings(time,minutes_str,hours_str,daysofweek_str);
-
-
-
-      if(res == 0){
-        perror("failed to convert values : minutes, hours, days to struct timing");
-        goto error;
-      }
-
-      char * buf = malloc(sizeof(char) * res);
-      
-      int res2 = timing_string_from_timing(buf, time);
-      
-      printf("res2 = %d\n",res2);
-      
-      printf("buffer = %s\n",buffer);
-      write(fd,buffer,strlen(buffer));
-      break;
+        //printf("%ld, %ld\n", sizeof(struct timing), sizeof(vv));
+        /*char *toto = malloc(200);
+          sprintf(toto, "%s,%ld,%c,%c", "CR", time.minutes, time.hours, time.daysofweek);
+          write(fd, toto, 200);
+          printf("%s\n", toto);*/
+        //struct string s = {11, "echo test-1" };
+        //write(fd,s.contents ,s.length);
+        break;
   }
 
   return EXIT_SUCCESS;
