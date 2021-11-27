@@ -16,7 +16,7 @@ int timing_from_strings(struct timing * dest, char * minutes_str, char * hours_s
   // Days of the week
   if (timing_field_from_string(&field, daysofweek_str, 0, 6) <= 0) return -1;
   dest->daysofweek = (uint8_t) field;
-  
+
   return 0;
 }
 
