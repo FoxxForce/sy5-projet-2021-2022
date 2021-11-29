@@ -114,7 +114,7 @@ int main(int argc, char * argv[]) {
         struct timing time;
         timing_from_strings(&time, minutes_str, hours_str, daysofweek_str);
         write_timing_in_pipe(fd,&time);
-        char *command[argc];
+        char *command[20];
         struct commandline cl ={0, command};
         commandline_from_arguments(&cl, argc, argv);
         write_commandline_in_pipe(fd, &cl);
@@ -122,15 +122,18 @@ int main(int argc, char * argv[]) {
         break;
     case CLIENT_REQUEST_REMOVE_TASK :
         write(fd, "RM", 2);
-        write(fd, htobe64(taskid), sizeof(uint64_t));
+        taskid = htobe64(taskid);
+        write(fd, &taskid, sizeof(uint64_t));
         break;
     case CLIENT_REQUEST_GET_STDOUT :
         write(fd,"SO", 2);
-        write(fd, htobe64(taskid), sizeof(uint64_t));
+        taskid = htobe64(taskid);
+        write(fd, &taskid, sizeof(uint64_t));
         break;
     case CLIENT_REQUEST_GET_STDERR :
         write(fd,"SE", 2);
-        write(fd, htobe64(taskid), sizeof(uint64_t));
+        taskid = htobe64(taskid);
+        write(fd, &taskid, sizeof(uint64_t));
         break;
     case CLIENT_REQUEST_TERMINATE :
         write(fd,"TM", 2);
