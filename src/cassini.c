@@ -32,15 +32,15 @@ const char usage_info[] = "\
 
 int main(int argc, char * argv[]) {
   errno = 0;
-  
+
   char * minutes_str = "*";
   char * hours_str = "*";
   char * daysofweek_str = "*";
   char * pipes_directory = NULL;
-  
+
   uint16_t operation = CLIENT_REQUEST_LIST_TASKS;
   uint64_t taskid;
-  
+
   int opt;
   char * strtoull_endp;
   while ((opt = getopt(argc, argv, "hlcqm:H:d:p:r:x:o:e:")) != -1) {
@@ -120,13 +120,27 @@ int main(int argc, char * argv[]) {
         write_commandline_in_pipe(fd, &cl);
           //printf("0");
         break;
+    case CLIENT_REQUEST_REMOVE_TASK :
+        write(fd, "RM", 2);
+        write(fd, htobe64(taskid), sizeof(uint64_t));
+        break;
+    case CLIENT_REQUEST_GET_STDOUT :
+        write(fd,"SO", 2);
+        write(fd, htobe64(taskid), sizeof(uint64_t));
+        break;
+    case CLIENT_REQUEST_GET_STDERR :
+        write(fd,"SE", 2);
+        write(fd, htobe64(taskid), sizeof(uint64_t));
+        break;
+    case CLIENT_REQUEST_TERMINATE :
+        write(fd,"TM", 2);
+        break;
   }
   return EXIT_SUCCESS;
-  
+
  error:
   if (errno != 0) perror("main");
   free(pipes_directory);
   pipes_directory = NULL;
   return EXIT_FAILURE;
 }
-
