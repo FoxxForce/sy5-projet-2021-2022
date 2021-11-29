@@ -9,6 +9,7 @@
 #include "../include/string.h"
 #include "../include/commandline.h"
 #include "../include/write-pipe.h"
+#include "../include/read-pipe.h"
 #include <endian.h>
 
 const char usage_info[] = "\
@@ -105,9 +106,18 @@ int main(int argc, char * argv[]) {
   strncat(chemin, request_pipe, strlen(request_pipe));
   int fd = open(chemin, O_WRONLY | O_APPEND);
 
+  char * request_pipe2 = "/saturnd-reply-pipe";
+  char * chemin2 = malloc(sizeof(char)*250);
+  strncat(chemin2, pipes_directory, strlen(pipes_directory));
+  strncat(chemin2, request_pipe2, strlen(request_pipe));
+  int fd2 = open(chemin2, O_RDONLY);
+
+  char *reptype = malloc(sizeof(uint16_t));
+  uint64_t id;
   switch(operation){
     case CLIENT_REQUEST_LIST_TASKS :
         write(fd,"LS",2);
+        read_reply_cr(fd2);
         break;
     case CLIENT_REQUEST_CREATE_TASK :
         write(fd, "CR", 2);
@@ -118,7 +128,10 @@ int main(int argc, char * argv[]) {
         struct commandline cl ={0, command};
         commandline_from_arguments(&cl, argc, argv);
         write_commandline_in_pipe(fd, &cl);
-          //printf("0");
+        read(fd2, reptype, sizeof(uint16_t));
+        read(fd2, &id, sizeof(uint64_t));
+        id = htobe64(id);
+        printf("%ld", id);
         break;
   }
   return EXIT_SUCCESS;
