@@ -137,19 +137,36 @@ int main(int argc, char * argv[]) {
         write(fd, "RM", 2);
         taskid = htobe64(taskid);
         write(fd, &taskid, sizeof(uint64_t));
+        if(read_reply_rm(fd2)==-1){
+            goto error;
+        }
         break;
     case CLIENT_REQUEST_GET_STDOUT :
         write(fd,"SO", 2);
         taskid = htobe64(taskid);
         write(fd, &taskid, sizeof(uint64_t));
+        if(read_reply_so_se(fd2)==-1){
+            goto error;
+        }
         break;
     case CLIENT_REQUEST_GET_STDERR :
         write(fd,"SE", 2);
         taskid = htobe64(taskid);
         write(fd, &taskid, sizeof(uint64_t));
+        if(read_reply_so_se(fd2)==-1){
+            goto error;
+        }
         break;
     case CLIENT_REQUEST_TERMINATE :
         write(fd,"TM", 2);
+        break;
+    case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
+        write(fd,"TX", 2);
+        taskid = htobe64(taskid);
+        write(fd, &taskid, sizeof(uint64_t));
+        if(read_reply_tx(fd2)==-1){
+            goto error;
+        }
         break;
   }
   return EXIT_SUCCESS;
