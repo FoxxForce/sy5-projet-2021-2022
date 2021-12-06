@@ -100,18 +100,31 @@ int main(int argc, char * argv[]) {
   // --------
   // | TODO |
   // --------
+  if(pipes_directory==NULL){
+      char *username = getenv("USER");
+      pipes_directory = malloc(500);
+      sprintf(pipes_directory, "/tmp/%s/saturnd/pipes", username);
+  }
+  int attributs;
   char * request_pipe = "/saturnd-request-pipe";
-  char * chemin = malloc(sizeof(char)*250);
+  char * chemin = malloc(sizeof(char)*1000);
   strncat(chemin, pipes_directory, strlen(pipes_directory));
   strncat(chemin, request_pipe, strlen(request_pipe));
   int fd = open(chemin, O_WRONLY | O_APPEND);
 
   char * request_pipe2 = "/saturnd-reply-pipe";
-  char * chemin2 = malloc(sizeof(char)*250);
+  char * chemin2 = malloc(sizeof(char)*1000);
   strncat(chemin2, pipes_directory, strlen(pipes_directory));
   strncat(chemin2, request_pipe2, strlen(request_pipe));
-  int fd2 = open(chemin2, O_RDONLY);
+  int fd2 = open(chemin2, O_RDONLY );
 
+  if(fd2==-1 || fd==-1){
+      goto error;
+  }
+  /*attributs = fcntl(fd, F_GETFL);
+  //fcntl(fd, F_SETFL, attributs & ~O_NONBLOCK);
+  attributs = fcntl(fd2, F_GETFL);
+  //fcntl(fd2, F_SETFL, attributs & ~O_NONBLOCK);*/
   char *reptype = malloc(sizeof(uint16_t));
   uint64_t id;
   switch(operation){
@@ -124,7 +137,7 @@ int main(int argc, char * argv[]) {
         struct timing time;
         timing_from_strings(&time, minutes_str, hours_str, daysofweek_str);
         write_timing_in_pipe(fd,&time);
-        char *command[20];
+        char *command[30];
         struct commandline cl ={0, command};
         commandline_from_arguments(&cl, argc, argv);
         write_commandline_in_pipe(fd, &cl);
@@ -132,6 +145,7 @@ int main(int argc, char * argv[]) {
         read(fd2, &id, sizeof(uint64_t));
         id = htobe64(id);
         printf("%ld", id);
+          free_commandline(&cl);
         break;
     case CLIENT_REQUEST_REMOVE_TASK :
         write(fd, "RM", 2);
@@ -169,11 +183,18 @@ int main(int argc, char * argv[]) {
         }
         break;
   }
+    free(pipes_directory);
+    free(chemin);
+    free(chemin2);
+    free(reptype);
   return EXIT_SUCCESS;
 
  error:
   if (errno != 0) perror("main");
   free(pipes_directory);
+  free(chemin);
+  free(chemin2);
+  free(reptype);
   pipes_directory = NULL;
   return EXIT_FAILURE;
 }

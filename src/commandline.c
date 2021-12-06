@@ -39,10 +39,9 @@ int commandline_from_arguments(struct commandline *dest, int argc, char **argv) 
     return 0;
 }
 void free_commandline(struct commandline *cl){
-    for(int i=0; i<cl->ARGC; i++){
+    for(int i=0; i<cl->ARGC; i++) {
         free(cl->ARGV[i]);
     }
-    free(cl->ARGV);
 }
 void print_commandline(struct commandline *cl){
     for(int i=0; i<cl->ARGC; i++){
