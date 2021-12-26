@@ -14,4 +14,6 @@ struct commandline {
 int commandline_from_arguments(struct commandline *dest, int argc, char **argv);
 void free_commandline(struct commandline *cl);
 void print_commandline(struct commandline *cl);
+int commandline_size(const struct commandline *cl);
+void commandline_string_from_commandline(char * dest, const struct commandline *cl);
 #endif // COMMANDLINE_H

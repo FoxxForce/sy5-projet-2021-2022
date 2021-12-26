@@ -11,7 +11,18 @@
 #include "../include/write-pipe.h"
 #include "../include/read-pipe.h"
 #include <poll.h>
+#include <sys/types.h>
+#include <dirent.h>
 int main(int argc, char * argv[]) {
+    //Créer le répertoire task s'il n'exite pas
+    struct stat st = {0};
+    if (stat("./run/task", &st) == -1) {
+        char * reptask = "./run/task";
+        int p = mkdir(reptask , 0744);
+       // printf("oui %d\n", p);
+    }
+    
+
     uint16_t operation;
     char * pipes_directory = "./run/pipes";
     if(pipes_directory==NULL){
@@ -29,11 +40,11 @@ int main(int argc, char * argv[]) {
     poll_fds[0].fd = fd;
     poll_fds[0].events = POLLIN;
     while(1){
-        printf("%d\n", poll_fds[0].revents);
         int poll_res = poll(poll_fds, 1, -1);
-        printf("%d\n", poll_res);
+        printf("%d\n", poll_fds[0].revents);
         if(poll_fds[0].revents == (POLLIN)){
-            read_request(fd);   
+            sleep(1);
+            uint16_t operation = read_request(fd);   
         }
         if(poll_fds[0].revents!=0){
             close(fd);

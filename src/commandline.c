@@ -45,7 +45,24 @@ void free_commandline(struct commandline *cl){
 }
 void print_commandline(struct commandline *cl){
     for(int i=0; i<cl->ARGC; i++){
-        printf("%s ", cl->ARGV[i]);
+       printf("%s ", cl->ARGV[i]);
     }
     printf("\n");
+}
+
+int commandline_size(const struct commandline *cl){
+    int size = 0;
+    for(int i=0; i<cl->ARGC; i++){
+        size = size + strlen(cl->ARGV[i]) + 1;
+    }
+    return size+1;
+}
+void commandline_string_from_commandline(char * dest, const struct commandline *cl){
+    int size = 0;
+    strcpy(dest, cl->ARGV[0]);
+    for(int i=1; i<cl->ARGC; i++){
+        strcat(dest, "\n");
+        strcat(dest, cl->ARGV[i]);
+        
+    }
 }
