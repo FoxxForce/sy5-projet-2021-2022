@@ -1,5 +1,6 @@
 #include "../include/read-pipe.h"
-void read_reply_cr(int fd){
+#include "../include/cassini.h"
+void read_reply_ls(int fd){
     char *reptype = malloc(sizeof(uint16_t));
     read(fd, reptype, sizeof(uint16_t));
     struct timing timingTask;
@@ -122,4 +123,33 @@ int read_reply_rm(int fd) {
         return -1;
     }
     return 0;
+}
+
+int read_request(int fd){
+    uint16_t operation;
+    read(fd, &operation, sizeof(uint16_t));
+    switch(htobe16(operation)){
+    case CLIENT_REQUEST_LIST_TASKS :
+        printf("LS\n");
+        break;
+    case CLIENT_REQUEST_CREATE_TASK :
+       
+        break;
+    case CLIENT_REQUEST_REMOVE_TASK :
+    
+        break;
+    case CLIENT_REQUEST_GET_STDOUT :
+      
+        break;
+    case CLIENT_REQUEST_GET_STDERR :
+     
+        break;
+    case CLIENT_REQUEST_TERMINATE :
+   
+        break;
+    case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
+       
+        break;
+  }
+  return 1;
 }
