@@ -106,51 +106,50 @@ int main(int argc, char * argv[]) {
       sprintf(pipes_directory, "/tmp/%s/saturnd/pipes", username);
   }
   int attributs;
-  char * request_pipe = "/saturnd-request-pipe";
+  
   char * chemin = malloc(sizeof(char)*1000);
-  strncat(chemin, pipes_directory, strlen(pipes_directory));
-  strncat(chemin, request_pipe, strlen(request_pipe));
+  sprintf(chemin, "%s/saturnd-request-pipe", pipes_directory);
   int fd = open(chemin, O_WRONLY | O_APPEND);
 
-  char * request_pipe2 = "/saturnd-reply-pipe";
   char * chemin2 = malloc(sizeof(char)*1000);
-  strncat(chemin2, pipes_directory, strlen(pipes_directory));
-  strncat(chemin2, request_pipe2, strlen(request_pipe));
-  int fd2 = open(chemin2, O_RDONLY );
+  sprintf(chemin2, "%s/saturnd-reply-pipe", pipes_directory);
+  int fd2 = 0;
 
   if(fd2==-1 || fd==-1){
       goto error;
   }
-  /*attributs = fcntl(fd, F_GETFL);
-  //fcntl(fd, F_SETFL, attributs & ~O_NONBLOCK);
-  attributs = fcntl(fd2, F_GETFL);
-  //fcntl(fd2, F_SETFL, attributs & ~O_NONBLOCK);*/
+
   char *reptype = malloc(sizeof(uint16_t));
   uint64_t id;
   switch(operation){
     case CLIENT_REQUEST_LIST_TASKS :
-        write(fd,"LS",2);
-        read_reply_cr(fd2);
+        write(fd, "LS", 2);
+        //printf("%ld\n", write(fd,"LS",2));
+        //sleep(5);
+        fd2 = open(chemin2, O_RDONLY );
+        read_reply_ls(fd2);
         break;
     case CLIENT_REQUEST_CREATE_TASK :
         write(fd, "CR", 2);
         struct timing time;
         timing_from_strings(&time, minutes_str, hours_str, daysofweek_str);
         write_timing_in_pipe(fd,&time);
-        char *command[30];
-        struct commandline cl ={0, command};
+        struct commandline cl;
         commandline_from_arguments(&cl, argc, argv);
         write_commandline_in_pipe(fd, &cl);
+         //sleep(5);
+        fd2 = open(chemin2, O_RDONLY);
         read(fd2, reptype, sizeof(uint16_t));
         read(fd2, &id, sizeof(uint64_t));
         id = htobe64(id);
         printf("%ld", id);
-          free_commandline(&cl);
+        free_commandline(&cl);
         break;
     case CLIENT_REQUEST_REMOVE_TASK :
         write(fd, "RM", 2);
         taskid = htobe64(taskid);
         write(fd, &taskid, sizeof(uint64_t));
+        fd2 = open(chemin2, O_RDONLY);
         if(read_reply_rm(fd2)==-1){
             goto error;
         }
@@ -159,6 +158,7 @@ int main(int argc, char * argv[]) {
         write(fd,"SO", 2);
         taskid = htobe64(taskid);
         write(fd, &taskid, sizeof(uint64_t));
+        fd2 = open(chemin2, O_RDONLY);
         if(read_reply_so_se(fd2)==-1){
             goto error;
         }
@@ -167,6 +167,7 @@ int main(int argc, char * argv[]) {
         write(fd,"SE", 2);
         taskid = htobe64(taskid);
         write(fd, &taskid, sizeof(uint64_t));
+        fd2 = open(chemin2, O_RDONLY);
         if(read_reply_so_se(fd2)==-1){
             goto error;
         }
@@ -178,6 +179,7 @@ int main(int argc, char * argv[]) {
         write(fd,"TX", 2);
         taskid = htobe64(taskid);
         write(fd, &taskid, sizeof(uint64_t));
+        fd2 = open(chemin2, O_RDONLY);
         if(read_reply_tx(fd2)==-1){
             goto error;
         }
@@ -187,6 +189,8 @@ int main(int argc, char * argv[]) {
     free(chemin);
     free(chemin2);
     free(reptype);
+    close(fd);
+    close(fd2);
   return EXIT_SUCCESS;
 
  error:
@@ -195,6 +199,8 @@ int main(int argc, char * argv[]) {
   free(chemin);
   free(chemin2);
   free(reptype);
+  close(fd);
+  close(fd2);
   pipes_directory = NULL;
   return EXIT_FAILURE;
 }

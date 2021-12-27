@@ -17,7 +17,7 @@ void read_reply_ls(int fd){
         printf("%s ", timingString);
         print_commandline(&commandTask);
     }
-    
+    free_commandline(&commandTask);
     free(timingString);
     free(reptype);
 }
@@ -36,14 +36,17 @@ void read_commandline(int fd, struct commandline *commandTask){
     read(fd, &argc, sizeof(uint32_t));
     argc = htobe32(argc);
     commandTask->ARGC = argc;
-    char **argv = malloc(sizeof(char)*argc);
-    commandTask->ARGV = argv;
+
+    commandTask->ARGV = malloc(sizeof(char *)*argc);
+    memset(commandTask->ARGV, 0, sizeof(char *)*argc);
     uint32_t length;
     for(int i=0; i<commandTask->ARGC; i++){
         read(fd, &length, sizeof(uint32_t));
         length = htobe32(length);
-        commandTask->ARGV[i] = malloc(sizeof(char)*length);
+        commandTask->ARGV[i] = malloc(sizeof(char)*(length+1));
+        memset(commandTask->ARGV[i], 0, length+1);
         read(fd, commandTask->ARGV[i], length);
+        commandTask->ARGV[i][length] = '\0';
     }
 }
 
@@ -59,13 +62,9 @@ int read_reply_tx(int fd){
     read(fd, &reptype, sizeof(uint16_t));
     reptype = htobe16(reptype);
     if(reptype==SERVER_REPLY_ERROR){
-        char *error = malloc(sizeof(uint16_t));
-        if(error==NULL){
-            exit(1);
-        }
-        read(fd, error, sizeof(uint16_t));
-        printf("%s", error);
-        free(error);
+        uint16_t error;
+        read(fd, &error, sizeof(uint16_t));
+        printf("%d", htobe16(error));
         return -1;
     }
     uint64_t secondes;
@@ -92,20 +91,17 @@ int read_reply_so_se(int fd) {
     read(fd, &reptype, sizeof(uint16_t));
     reptype = htobe16(reptype);
     if (reptype == SERVER_REPLY_ERROR) {
-        char *error = malloc(sizeof(uint16_t));
-        if (error == NULL) {
-            exit(1);
-        }
-        read(fd, error, sizeof(uint16_t));
-        printf("%s", error);
-        free(error);
+        uint16_t error;
+        read(fd, &error, sizeof(uint16_t));
+        printf("%d", htobe16(error));
         return -1;
     }
     uint32_t length;
     read(fd, &length, sizeof(uint32_t));
     length = htobe32(length);
-    char *content = malloc(sizeof(char)*length);
+    char *content = malloc(sizeof(char)*(length+1));
     read(fd, content, sizeof(char)*length);
+    content[length] = '\0';
     printf("%s", content);
     free(content);
     return 0;
@@ -135,6 +131,7 @@ void read_request_cr(int fd){
     read_timing(fd, &timingTask, timingString);
     read_commandline(fd, &commandTask);
     create_tree(&timingTask, &commandTask);
+    free_commandline(&commandTask);
     free(timingString);
 }
 
