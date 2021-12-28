@@ -45,6 +45,12 @@ int main(int argc, char * argv[]) {
         int poll_res = poll(poll_fds, 1, -1);
         if(poll_fds[0].revents == (POLLIN)){
             uint16_t operation = read_request(fd, path_reply_pipe); 
+            if(operation==CLIENT_REQUEST_TERMINATE){
+                int fd_reply = open(path_reply_pipe, O_WRONLY);
+                write(fd_reply, "OK", sizeof(uint16_t));
+                close(fd_reply);
+                break;
+            }
         }
         if(poll_fds[0].revents!=0){
             close(fd);

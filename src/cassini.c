@@ -172,6 +172,8 @@ int main(int argc, char * argv[]) {
         break;
     case CLIENT_REQUEST_TERMINATE :
         write(fd,"TM", 2);
+        fd2 = open(path_reply_pipe, O_RDONLY);
+        read(fd2, reptype, sizeof(uint16_t));
         break;
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
         write(fd,"TX", 2);

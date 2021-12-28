@@ -17,8 +17,10 @@ void read_reply_ls(int fd){
         printf("%s ", timingString);
         print_commandline(&commandTask);
     }
-    free_commandline(&commandTask);
-    free(timingString);
+    if(nbTasks>0){
+        free_commandline(&commandTask);
+        free(timingString);
+    }
     free(reptype);
 }
 
@@ -136,7 +138,7 @@ uint64_t read_request_cr(int fd){
     return id;
 }
 
-int read_request(int fd, char *path_reply_path){
+uint16_t read_request(int fd, char *path_reply_path){
     uint16_t operation;
     read(fd, &operation, sizeof(uint16_t));
     operation = htobe16(operation);
@@ -183,7 +185,6 @@ int read_request(int fd, char *path_reply_path){
      
         break;
     case CLIENT_REQUEST_TERMINATE :
-   
         break;
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
        

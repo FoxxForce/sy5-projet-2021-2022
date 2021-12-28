@@ -24,5 +24,5 @@ void read_reply_ls(int fd);
 int read_reply_tx(int fd);
 int read_reply_so_se(int fd);
 int read_reply_rm(int fd);
-int read_request(int fd, char *path_reply_path);
+uint16_t read_request(int fd, char *path_reply_path);
 #endif // READ_PIPE_H
