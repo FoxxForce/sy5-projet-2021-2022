@@ -18,8 +18,7 @@ int main(int argc, char * argv[]) {
     struct stat st = {0};
     if (stat("./run/task", &st) == -1) {
         char * reptask = "./run/task";
-        int p = mkdir(reptask , 0744);
-       // printf("oui %d\n", p);
+        int p = mkdir(reptask , 0744);;
     }
     
 
@@ -30,36 +29,35 @@ int main(int argc, char * argv[]) {
       pipes_directory = malloc(500);
       sprintf(pipes_directory, "/tmp/%s/saturnd/pipes", username);
     }
-    int attributs;
-    char * request_pipe = "/saturnd-request-pipe";
-    char * chemin = malloc(sizeof(char)*1000);
-    strncat(chemin, pipes_directory, strlen(pipes_directory));
-    strncat(chemin, request_pipe, strlen(request_pipe));
-    int fd = open(chemin, O_RDONLY | O_NONBLOCK);
+    
+    
+    char * path_request_pipe = malloc(sizeof(char)*1000);
+    sprintf(path_request_pipe, "%s/saturnd-request-pipe", pipes_directory);
+    int fd = open(path_request_pipe , O_RDONLY | O_NONBLOCK);
+
+    char * path_reply_pipe = malloc(sizeof(char)*1000);
+    sprintf(path_reply_pipe, "%s/saturnd-reply-pipe", pipes_directory);
+
     struct pollfd poll_fds[1];
     poll_fds[0].fd = fd;
     poll_fds[0].events = POLLIN;
     while(1){
         int poll_res = poll(poll_fds, 1, -1);
-        printf("%d\n", poll_fds[0].revents);
         if(poll_fds[0].revents == (POLLIN)){
-            sleep(1);
-            uint16_t operation = read_request(fd);   
+            uint16_t operation = read_request(fd, path_reply_pipe); 
         }
         if(poll_fds[0].revents!=0){
             close(fd);
-            fd = open(chemin, O_RDONLY | O_NONBLOCK);
+            fd = open(path_request_pipe, O_RDONLY | O_NONBLOCK);
             poll_fds[0].fd = fd;
             poll_fds[0].events = POLLIN;
             
         }
         
     }
-    /*char * request_pipe2 = "/saturnd-reply-pipe";
-    char * chemin2 = malloc(sizeof(char)*1000);
-    strncat(chemin2, pipes_directory, strlen(pipes_directory));
-    strncat(chemin2, request_pipe2, strlen(request_pipe));
-    int fd2 = open(chemin2, O_RDONLY );*/
+    close(fd);
+    free(path_reply_pipe);
+    free(path_request_pipe);
 
 
 }
