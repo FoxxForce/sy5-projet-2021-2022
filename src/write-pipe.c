@@ -32,6 +32,9 @@ void write_reply_ls(int fd){
             struct timing time;
             uint64_t id;
             sscanf(dir->d_name, "%lu", &id);
+            if(is_remove_task(id)){
+                continue;
+            }
             task_commandline(id, &cl);
             task_timing(id, &time);
             id = htobe64(id);

@@ -1,7 +1,7 @@
 #include "../include/task.h"
 uint64_t create_tree(struct timing *time, struct commandline *cl){
     //Récupérer le nombre de tâches
-    uint64_t nbtask = nb_task();
+    uint64_t nbtask = nb_task_created();
     
     
     char timing_string[TIMING_TEXT_MIN_BUFFERSIZE];
@@ -32,7 +32,7 @@ uint64_t create_tree(struct timing *time, struct commandline *cl){
     return nbtask+1;
 }
 
-int nb_task(){
+int nb_task_created(){
     int nbtask = 0;
     struct dirent *dir; 
     char *r = "./run/task";
@@ -44,15 +44,49 @@ int nb_task(){
     closedir(d);
     return nbtask;
 }
+int nb_task(){
+    int nbtask = 0;
+    struct dirent *dir; 
+    char *r = "./run/task";
+    DIR *d = opendir(r); 
+    uint64_t id;
+    while ((dir = readdir(d)) != NULL){
+        sscanf(dir->d_name, "%lu", &id);
+        if(!is_remove_task(id)){
+            nbtask++;
+        }
+    }
+    nbtask -= 2;
+    closedir(d);
+    return nbtask;
+}
+
+int is_remove_task(int task_id){
+    char task[40];
+    sprintf(task, "./run/task/%d", task_id);
+    struct dirent *dir; 
+    DIR *d = opendir(task); 
+    char file[1024];
+    while ((dir = readdir(d)) != NULL){
+        if(strcmp(dir->d_name, "remove")==0 ){
+            return 1;
+        }
+    }
+    return 0;
+}
 int remove_task(int task_id){
     char task[40];
     sprintf(task, "./run/task/%d", task_id);
     struct stat st = {0};
-    if (stat(task, &st) == -1) {
+    if (stat(task, &st) == -1 || is_remove_task(task_id)) {
         return -1;
     }
     //supprime l'arborescence
-    struct dirent *dir; 
+    char remove[50];
+    sprintf(remove, "%s/remove", task);
+    int fd = open(remove,  O_CREAT , 0777);
+    close(fd);
+    /*struct dirent *dir; 
     DIR *d = opendir(task); 
     char file[1024];
     while ((dir = readdir(d)) != NULL){
@@ -61,7 +95,7 @@ int remove_task(int task_id){
             unlink(file);
         }
     }
-    rmdir(task);
+    rmdir(task);*/
     return 0;
 }
 

@@ -23,6 +23,8 @@ uint64_t create_tree(struct timing *time, struct commandline *cl);
 int remove_task(int task_id);
 void task_commandline(uint64_t id, struct commandline *cl);
 void task_timing(uint64_t id, struct timing *time);
+int nb_task_created();
 int nb_task();
+int is_remove_task(int task_id);
 
 #endif // TASK_H
