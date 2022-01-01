@@ -12,8 +12,9 @@ void write_commandline_in_pipe(int fd, struct commandline *cl){
     uint32_t  argc = htobe32(cl->ARGC);
     write(fd, &argc, sizeof(uint32_t));
     for(int i=0; i<cl->ARGC; i++){
-        uint32_t  length = htobe32(strlen(cl->ARGV[i]));
+        uint32_t  length = strlen(cl->ARGV[i]);
+        length = htobe32(length);
         write(fd, &length, sizeof(uint32_t));
-        write(fd, cl->ARGV[i], strlen(cl->ARGV[i]));
+        write(fd, cl->ARGV[i], htobe32(length));
     }
 }

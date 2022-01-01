@@ -18,8 +18,9 @@
 void read_commandline(int fd, struct commandline *commandTask);
 void read_id(int fd);
 void read_timing(int fd, struct timing *timingTask, char *timingString);
-void read_reply_cr(int fd);
+void read_reply_ls(int fd);
 int read_reply_tx(int fd);
 int read_reply_so_se(int fd);
 int read_reply_rm(int fd);
+int read_request(int fd);
 #endif // READ_PIPE_H
