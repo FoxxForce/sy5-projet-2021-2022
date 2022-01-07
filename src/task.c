@@ -11,7 +11,7 @@ uint64_t create_tree(struct timing *time, struct commandline *cl){
     char repTask[40];
     sprintf(repTask, "./run/task/%s", id);
     mkdir(repTask, 0700);
-    char file[40];
+    char file[45];
     sprintf(file, "./run/task/%s/time", id);
     int fd = open(file,  O_CREAT | O_WRONLY, 0777);
     write(fd, timing_string, sizeof(char)*strlen(timing_string));
@@ -29,6 +29,11 @@ uint64_t create_tree(struct timing *time, struct commandline *cl){
     fd = open(file,  O_CREAT | O_WRONLY, S_IRWXU);
     write(fd, id, sizeof(char)*strlen(id));
     close(fd);
+    
+    sprintf(file, "./run/task/%s/exitcodes", id);
+    fd = open(file,  O_CREAT);
+    close(fd);
+    
     return nbtask+1;
 }
 
@@ -51,12 +56,14 @@ int nb_task(){
     DIR *d = opendir(r); 
     uint64_t id;
     while ((dir = readdir(d)) != NULL){
+        if(strcmp(dir->d_name, "..")==0 || strcmp(dir->d_name, ".")==0){
+            continue;
+        }
         sscanf(dir->d_name, "%lu", &id);
         if(!is_remove_task(id)){
             nbtask++;
         }
     }
-    nbtask -= 2;
     closedir(d);
     return nbtask;
 }
@@ -69,11 +76,15 @@ int is_remove_task(int task_id){
     char file[1024];
     while ((dir = readdir(d)) != NULL){
         if(strcmp(dir->d_name, "remove")==0 ){
+            closedir(d);
             return 1;
         }
     }
+    closedir(d);
     return 0;
 }
+
+//Ajoute un fichier nommé `remove` dans le répertoire de la tâche task_id pour supprimer la tâche
 int remove_task(int task_id){
     char task[40];
     sprintf(task, "./run/task/%d", task_id);
@@ -81,21 +92,10 @@ int remove_task(int task_id){
     if (stat(task, &st) == -1 || is_remove_task(task_id)) {
         return -1;
     }
-    //supprime l'arborescence
     char remove[50];
     sprintf(remove, "%s/remove", task);
     int fd = open(remove,  O_CREAT , 0777);
     close(fd);
-    /*struct dirent *dir; 
-    DIR *d = opendir(task); 
-    char file[1024];
-    while ((dir = readdir(d)) != NULL){
-        if(strcmp(dir->d_name, "..")!=0 && strcmp(dir->d_name, ".")!=0){
-            sprintf(file, "%s/%s", task, dir->d_name);
-            unlink(file);
-        }
-    }
-    rmdir(task);*/
     return 0;
 }
 
@@ -118,7 +118,7 @@ void task_commandline(uint64_t id, struct commandline *cl){
             nb_words++;
         }
     }
-    char **argv = malloc(sizeof(char *)*nb_words);
+    char **argv = malloc(sizeof(char *)*(1+nb_words));
     cl->ARGC = nb_words;
     cl->ARGV = argv;
     nb_words = 0;
@@ -137,6 +137,7 @@ void task_commandline(uint64_t id, struct commandline *cl){
         }
         nb_char++;
     }
+    argv[nb_words] = NULL;
 }
 
 void task_timing(uint64_t id, struct timing *time){
@@ -170,4 +171,19 @@ void task_timing(uint64_t id, struct timing *time){
         nb_char++;
     }
      timing_from_strings(time, argv[0], argv[1], argv[2]);
+     for(int i=0; i<nb_words; i++){
+         free(argv[i]);
+     }
+     free(argv);
+}
+
+//renvoie 1 si la tâche a été exécutée au moins une fois sinon 0
+int task_executed(uint64_t id){
+    char file[40];
+    sprintf(file, "./run/task/%lu/stdout", id);
+    struct stat st;
+    if (stat(file, &st) == -1) {
+        return 0;
+    }
+    return 1;
 }

@@ -143,6 +143,7 @@ uint16_t read_request(int fd, char *path_reply_path){
     read(fd, &operation, sizeof(uint16_t));
     operation = htobe16(operation);
     int fd_reply = -1;
+    uint64_t task_id;
     switch(operation){
     //FINI
     case CLIENT_REQUEST_LIST_TASKS :
@@ -152,20 +153,19 @@ uint16_t read_request(int fd, char *path_reply_path){
         break;
     //FINI
     case CLIENT_REQUEST_CREATE_TASK :
-        uint64_t id = read_request_cr(fd);
+        task_id = read_request_cr(fd);
         char reply[30];
         //printf("%lu\n", id);
-        id = htobe64(id);
+        task_id = htobe64(task_id);
        // sprintf(reply, "OK%lu", id);
         fd_reply = open(path_reply_path, O_WRONLY);
         //write(fd_reply, reply, sizeof(uint64_t) + sizeof(uint16_t));
         write(fd_reply, "OK",sizeof(uint16_t));
-        write(fd_reply, &id,sizeof(uint64_t));
+        write(fd_reply, &task_id,sizeof(uint64_t));
         close(fd_reply);
         break;
     //FINI
     case CLIENT_REQUEST_REMOVE_TASK :
-        uint64_t task_id;
         read(fd, &task_id, sizeof(uint64_t));
         fd_reply = open(path_reply_path, O_WRONLY);
         //char reply[10];
@@ -179,10 +179,31 @@ uint16_t read_request(int fd, char *path_reply_path){
         close(fd_reply);
         break;
     case CLIENT_REQUEST_GET_STDOUT :
-      
+        read(fd, &task_id, sizeof(uint64_t));
+        task_id = htobe64(task_id);
+        fd_reply = open(path_reply_path, O_WRONLY);
+        if(task_id>nb_task_created()){
+            write(fd_reply, "ERNF", sizeof(uint16_t)*2);
+        }else if(!task_executed(task_id)){
+            write(fd_reply, "ERNR", sizeof(uint16_t)*2);
+        }else{
+            write_reply_so_se(fd_reply, task_id, 1);
+        }
+        close(fd_reply);
+
         break;
     case CLIENT_REQUEST_GET_STDERR :
-     
+        read(fd, &task_id, sizeof(uint64_t));
+        task_id = htobe64(task_id);
+        fd_reply = open(path_reply_path, O_WRONLY);
+        if(task_id>nb_task_created()){
+            write(fd_reply, "ERNF", sizeof(uint16_t)*2);
+        }else if(!task_executed(task_id)){
+            write(fd_reply, "ERNR", sizeof(uint16_t)*2);
+        }else{
+            write_reply_so_se(fd_reply, task_id, 2);
+        }
+        close(fd_reply);
         break;
     case CLIENT_REQUEST_TERMINATE :
         break;

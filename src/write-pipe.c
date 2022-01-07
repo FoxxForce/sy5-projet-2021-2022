@@ -41,6 +41,33 @@ void write_reply_ls(int fd){
             write(fd, &id, sizeof(uint64_t));
             write_timing_in_pipe(fd, &time);
             write_commandline_in_pipe(fd, &cl);
+            free_commandline(&cl);
         }
     }
+   
+    closedir(d);
+}
+
+//Envoie la réponse de la requête SO su std=1 sinon celle de SE
+void write_reply_so_se(int fd, uint64_t id, int std){
+    struct dirent *dir; 
+    char *r = "./run/task";
+    DIR *d = opendir(r); 
+    char file[40];
+    if(std==1){
+        sprintf(file, "./run/task/%lu/stdout", id);
+    }else{
+        sprintf(file, "./run/task/%lu/stderr", id);
+    }
+    int fd_std = open(file, O_RDONLY);
+    struct stat st;
+    if (stat(file, &st) == -1) {
+        printf("t:%d\n", errno);
+        exit(1);
+    } 
+    char std_string[st.st_size+1];
+    read(fd_std, std_string, sizeof(char)*st.st_size);
+    std_string[st.st_size] = '\0';
+    write(fd, "OK", sizeof(uint16_t));
+    write(fd, std_string, sizeof(char)*st.st_size);
 }

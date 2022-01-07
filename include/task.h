@@ -26,5 +26,8 @@ void task_timing(uint64_t id, struct timing *time);
 int nb_task_created();
 int nb_task();
 int is_remove_task(int task_id);
+int exec_task(int id);
+int check_task(char *tasks_directory);
+int task_executed(uint64_t id);
 
 #endif // TASK_H
