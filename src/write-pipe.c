@@ -18,3 +18,26 @@ void write_commandline_in_pipe(int fd, struct commandline *cl){
         write(fd, cl->ARGV[i], htobe32(length));
     }
 }
+
+void write_reply_ls(int fd){
+    struct dirent *dir; 
+    char *r = "./run/task";
+    DIR *d = opendir(r); 
+    write(fd, "OK", sizeof(uint16_t));
+    uint32_t nbtask = htobe32(nb_task());
+    write(fd, &nbtask, sizeof(uint32_t));
+    while ((dir = readdir(d)) != NULL){
+        if(strcmp(dir->d_name, ".")!=0 && strcmp(dir->d_name, "..")!=0){
+            struct commandline cl;
+            struct timing time;
+            uint64_t id;
+            sscanf(dir->d_name, "%lu", &id);
+            task_commandline(id, &cl);
+            task_timing(id, &time);
+            id = htobe64(id);
+            write(fd, &id, sizeof(uint64_t));
+            write_timing_in_pipe(fd, &time);
+            write_commandline_in_pipe(fd, &cl);
+        }
+    }
+}

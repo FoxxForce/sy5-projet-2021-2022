@@ -1,6 +1,8 @@
-#ifndef READ_PIPE_H
-#define READ_PIPE_H
+#ifndef TASK_H
+#define TASK_H
 
+#include "../include/cassini.h"
+#include <sys/dir.h>
 #include "stdint.h"
 #include "sys/types.h"
 #include "sys/stat.h"
@@ -17,12 +19,10 @@
 #include <string.h>
 #include <time.h>
 
-void read_commandline(int fd, struct commandline *commandTask);
-void read_id(int fd);
-void read_timing(int fd, struct timing *timingTask, char *timingString);
-void read_reply_ls(int fd);
-int read_reply_tx(int fd);
-int read_reply_so_se(int fd);
-int read_reply_rm(int fd);
-uint16_t read_request(int fd, char *path_reply_path);
-#endif // READ_PIPE_H
+uint64_t create_tree(struct timing *time, struct commandline *cl);
+int remove_task(int task_id);
+void task_commandline(uint64_t id, struct commandline *cl);
+void task_timing(uint64_t id, struct timing *time);
+int nb_task();
+
+#endif // TASK_H

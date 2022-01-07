@@ -1,6 +1,6 @@
 #include "../include/read-pipe.h"
 #include "../include/cassini.h"
-#include "task.c"
+
 void read_reply_ls(int fd){
     char *reptype = malloc(sizeof(uint16_t));
     read(fd, reptype, sizeof(uint16_t));
@@ -17,8 +17,10 @@ void read_reply_ls(int fd){
         printf("%s ", timingString);
         print_commandline(&commandTask);
     }
-    free_commandline(&commandTask);
-    free(timingString);
+    if(nbTasks>0){
+        free_commandline(&commandTask);
+        free(timingString);
+    }
     free(reptype);
 }
 
@@ -124,30 +126,57 @@ int read_reply_rm(int fd) {
     return 0;
 }
 
-void read_request_cr(int fd){
+uint64_t read_request_cr(int fd){
     struct timing timingTask;
     char *timingString = malloc(sizeof(struct timing));
     struct commandline commandTask;
     read_timing(fd, &timingTask, timingString);
     read_commandline(fd, &commandTask);
-    create_tree(&timingTask, &commandTask);
+    uint64_t id = create_tree(&timingTask, &commandTask);
     free_commandline(&commandTask);
     free(timingString);
+    return id;
 }
 
-int read_request(int fd){
+uint16_t read_request(int fd, char *path_reply_path){
     uint16_t operation;
     read(fd, &operation, sizeof(uint16_t));
     operation = htobe16(operation);
+    int fd_reply = -1;
     switch(operation){
+    //FINI
     case CLIENT_REQUEST_LIST_TASKS :
-        printf("LS\n");
+        fd_reply = open(path_reply_path, O_WRONLY);
+        write_reply_ls(fd_reply);
+        close(fd_reply);
         break;
+    //FINI
     case CLIENT_REQUEST_CREATE_TASK :
-        read_request_cr(fd);
+        uint64_t id = read_request_cr(fd);
+        char reply[30];
+        //printf("%lu\n", id);
+        id = htobe64(id);
+       // sprintf(reply, "OK%lu", id);
+        fd_reply = open(path_reply_path, O_WRONLY);
+        //write(fd_reply, reply, sizeof(uint64_t) + sizeof(uint16_t));
+        write(fd_reply, "OK",sizeof(uint16_t));
+        write(fd_reply, &id,sizeof(uint64_t));
+        close(fd_reply);
         break;
+    //FINI
     case CLIENT_REQUEST_REMOVE_TASK :
-    
+        uint64_t task_id;
+        read(fd, &task_id, sizeof(uint64_t));
+        fd_reply = open(path_reply_path, O_WRONLY);
+        //char reply[10];
+        if(remove_task(htobe64(task_id))==0){
+            //sprintf(reply, "%hu", htobe16(SERVER_REPLY_OK));
+            write(fd_reply, "OK", sizeof(uint16_t));
+        }else{
+             //sprintf(reply, "%hu%hu", htobe16(SERVER_REPLY_ERROR), htobe16(SERVER_REPLY_ERROR_NOT_FOUND));
+            write(fd_reply, "ERNF", sizeof(uint16_t)*2);
+        }  
+        close(fd_reply);
         break;
     case CLIENT_REQUEST_GET_STDOUT :
       
@@ -156,7 +185,6 @@ int read_request(int fd){
      
         break;
     case CLIENT_REQUEST_TERMINATE :
-   
         break;
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
        

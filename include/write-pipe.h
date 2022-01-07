@@ -11,9 +11,12 @@
 #include "../include/timing-text-io.h"
 #include "../include/string.h"
 #include "../include/commandline.h"
+#include "../include/task.h"
 #include <string.h>
+
 
 void write_timing_in_pipe(int fd, struct timing *time);
 void write_commandline_in_pipe(int fd, struct commandline *cl);
+void write_reply_ls(int fd);
 
 #endif // WRITE_PIPE_H
