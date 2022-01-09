@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 struct commandline {
     uint32_t ARGC;
@@ -16,4 +17,5 @@ void free_commandline(struct commandline *cl);
 void print_commandline(struct commandline *cl);
 int commandline_size(const struct commandline *cl);
 void commandline_string_from_commandline(char * dest, const struct commandline *cl);
+void exec_commandline(struct commandline *cl);
 #endif // COMMANDLINE_H

@@ -64,3 +64,7 @@ void commandline_string_from_commandline(char * dest, const struct commandline *
         
     }
 }
+
+void exec_commandline(struct commandline *cl){
+    execvp(cl->ARGV[0], cl->ARGV);
+}
