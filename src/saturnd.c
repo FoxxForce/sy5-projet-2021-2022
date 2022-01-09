@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
     while(1){
         timestamp = time(NULL);
         tm = localtime(&timestamp);
-        int poll_res = poll(poll_fds, 1, (60-tm->tm_sec)*1000);
+        int poll_res = poll(poll_fds, 1, (60-tm->tm_sec)*100);
         if(poll_fds[0].revents == (POLLIN)){
             uint16_t operation = read_request(fd, path_reply_pipe); 
             if(operation==CLIENT_REQUEST_TERMINATE){
@@ -73,7 +73,17 @@ int main(int argc, char * argv[]) {
             poll_fds[0].events = POLLIN;
             
         }
-
+        int pid_child;
+        pid_t wstatus = waitpid(-1, &wstatus, WNOHANG);
+        while(wstatus>0){
+            printf("%d\n", pid_child);
+            if(WIFEXITED(wstatus)){
+                printf("t1t1\n");
+                exitcode_task(pid_child, WEXITSTATUS(wstatus));
+            }
+            exitcode_task(pid_child, 10);
+            wstatus = waitpid(-1, &wstatus, WNOHANG);
+        }
         d= opendir(r); 
         while ((dir = readdir(d)) != NULL && poll_res==0){
             if(strcmp(dir->d_name, "..")==0 || strcmp(dir->d_name, ".")==0){
@@ -100,6 +110,13 @@ int main(int argc, char * argv[]) {
                         sprintf(file, "./run/task/%s/stderr", id_char);
                         fd = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
                         dup2(fd, 2);
+                        close(fd);
+                        sprintf(file, "./run/task/%s/pid", id_char);
+                        fd = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
+                        char pid[21];
+                        sprintf(pid, "%u", getpid());
+                        printf("%s\n", pid);
+                        write(fd, pid, sizeof(char)*strlen(pid));
                         close(fd);
                         execvp(cl.ARGV[0], cl.ARGV);
                 }

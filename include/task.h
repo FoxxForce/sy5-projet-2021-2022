@@ -29,5 +29,6 @@ int is_remove_task(int task_id);
 int exec_task(int id);
 int check_task(char *tasks_directory);
 int task_executed(uint64_t id);
+int exitcode_task(int pid_child, uint8_t exitcode);
 
 #endif // TASK_H
