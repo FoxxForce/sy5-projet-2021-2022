@@ -1,20 +1,4 @@
-#include "../include/cassini.h" // Peut causer des soucis
-#include "stdint.h"
-#include "sys/types.h"
-#include "sys/stat.h"
-#include "fcntl.h"
-#include "unistd.h"
-#include "../include/timing.h"
-#include "../include/timing-text-io.h"
-#include "../include/string.h"
-#include "../include/commandline.h"
-#include "../include/write-pipe.h"
-#include "../include/read-pipe.h"
-#include <poll.h>
-#include <time.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <sys/wait.h>
+#include "../include/saturnd.h" 
 
 int selfpipe[2];
 void child_handler(){
@@ -121,25 +105,33 @@ int main(int argc, char * argv[]) {
                         sprintf(file, "./run/task/%s/stdout", id_char);
                         printf("%s\n", file);
                         task_commandline(id, &cl);
-                        int fd = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
-                        dup2(fd, 1);
-                        close(fd);
+                        int fd2 = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
+                        dup2(fd2, 1);
+                        close(fd2);
                         sprintf(file, "./run/task/%s/stderr", id_char);
-                        fd = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
-                        dup2(fd, 2);
-                        close(fd);
+                        fd2 = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
+                        dup2(fd2, 2);
+                        close(fd2);
                         sprintf(file, "./run/task/%s/pid", id_char);
-                        fd = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
+                        fd2 = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
                         char pid[21];
                         sprintf(pid, "%u", getpid());
                         write(fd, pid, sizeof(char)*strlen(pid));
-                        close(fd);
+                        close(fd2);
                         sprintf(file, "./run/task/%s/exitcodes", id_char);
-                        fd = open(file, O_WRONLY | O_APPEND);
+                        fd2 = open(file, O_WRONLY | O_APPEND);
                         uint64_t secondes = time(NULL);
-                        write(fd, &secondes, sizeof(uint64_t));
+                        write(fd2, &secondes, sizeof(uint64_t));
+                        close(fd2);
+                        close(selfpipe[0]);
+                        close(selfpipe[1]);
                         close(fd);
-                        return execvp(cl.ARGV[0], cl.ARGV);
+                        free(path_reply_pipe);
+                        free(path_request_pipe);
+                        closedir(d);
+                        int r = execvp(cl.ARGV[0], cl.ARGV);
+                        free_commandline(&cl);
+                        return r;
                         
                 }
             }

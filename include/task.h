@@ -1,7 +1,6 @@
 #ifndef TASK_H
 #define TASK_H
 
-#include "../include/cassini.h"
 #include <sys/dir.h>
 #include "stdint.h"
 #include "sys/types.h"
@@ -9,15 +8,17 @@
 #include "fcntl.h"
 #include "unistd.h"
 #include <endian.h>
-#include "../include/timing.h"
-#include "../include/timing-text-io.h"
-#include "../include/string.h"
-#include "../include/server-reply.h"
-#include "../include/commandline.h"
-#include "../include/write-pipe.h"
-#include "../include/task.h"
+#include "timing.h"
+#include "timing-text-io.h"
+#include "server-reply.h"
+#include "commandline.h"
+#include "write-pipe.h"
+#include "client-request.h"
+#include "task.h"
+#include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
 
 uint64_t create_tree(struct timing *time, struct commandline *cl);
 int remove_task(int task_id);

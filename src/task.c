@@ -1,5 +1,5 @@
 #include "../include/task.h"
-#include <signal.h>
+
 
 uint64_t create_tree(struct timing *time, struct commandline *cl){
     //Récupérer le nombre de tâches
@@ -215,8 +215,8 @@ int exitcode_task(int pid_child, uint16_t exitcode){
             close(fd_pid);
             return 0;
         }
+        close(fd_pid);
     }
-    close(fd_pid);
     return 0;
 }
 

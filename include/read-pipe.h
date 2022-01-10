@@ -7,13 +7,13 @@
 #include "fcntl.h"
 #include "unistd.h"
 #include <endian.h>
-#include "../include/timing.h"
-#include "../include/timing-text-io.h"
-#include "../include/string.h"
-#include "../include/server-reply.h"
-#include "../include/commandline.h"
-#include "../include/write-pipe.h"
-#include "../include/task.h"
+#include "timing.h"
+#include "timing-text-io.h"
+#include "server-reply.h"
+#include "client-request.h"
+#include "commandline.h"
+#include "write-pipe.h"
+#include "task.h"
 #include <string.h>
 #include <time.h>
 
@@ -24,5 +24,5 @@ void read_reply_ls(int fd);
 int read_reply_tx(int fd);
 int read_reply_so_se(int fd);
 int read_reply_rm(int fd);
-uint16_t read_request(int fd, char *path_reply_path);
+
 #endif // READ_PIPE_H

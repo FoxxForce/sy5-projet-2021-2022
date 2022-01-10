@@ -7,11 +7,10 @@
 #include "fcntl.h"
 #include "unistd.h"
 #include <endian.h>
-#include "../include/timing.h"
-#include "../include/timing-text-io.h"
-#include "../include/string.h"
-#include "../include/commandline.h"
-#include "../include/task.h"
+#include "timing.h"
+#include "timing-text-io.h"
+#include "commandline.h"
+#include "task.h"
 #include <string.h>
 
 
