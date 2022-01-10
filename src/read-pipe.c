@@ -66,7 +66,7 @@ int read_reply_tx(int fd){
     if(reptype==SERVER_REPLY_ERROR){
         uint16_t error;
         read(fd, &error, sizeof(uint16_t));
-        printf("%d", htobe16(error));
+        printf("%d\n", htobe16(error));
         return -1;
     }
     uint64_t secondes;
@@ -95,7 +95,7 @@ int read_reply_so_se(int fd) {
     if (reptype == SERVER_REPLY_ERROR) {
         uint16_t error;
         read(fd, &error, sizeof(uint16_t));
-        printf("%d", htobe16(error));
+        printf("%d\n", htobe16(error));
         return -1;
     }
     uint32_t length;
@@ -168,12 +168,9 @@ uint16_t read_request(int fd, char *path_reply_path){
     case CLIENT_REQUEST_REMOVE_TASK :
         read(fd, &task_id, sizeof(uint64_t));
         fd_reply = open(path_reply_path, O_WRONLY);
-        //char reply[10];
         if(remove_task(htobe64(task_id))==0){
-            //sprintf(reply, "%hu", htobe16(SERVER_REPLY_OK));
             write(fd_reply, "OK", sizeof(uint16_t));
         }else{
-             //sprintf(reply, "%hu%hu", htobe16(SERVER_REPLY_ERROR), htobe16(SERVER_REPLY_ERROR_NOT_FOUND));
             write(fd_reply, "ERNF", sizeof(uint16_t)*2);
         }  
         close(fd_reply);
@@ -182,7 +179,7 @@ uint16_t read_request(int fd, char *path_reply_path){
         read(fd, &task_id, sizeof(uint64_t));
         task_id = htobe64(task_id);
         fd_reply = open(path_reply_path, O_WRONLY);
-        if(task_id>nb_task_created()){
+        if(task_id>nb_task_created() || task_id<0){
             write(fd_reply, "ERNF", sizeof(uint16_t)*2);
         }else if(!task_executed(task_id)){
             write(fd_reply, "ERNR", sizeof(uint16_t)*2);
@@ -196,7 +193,7 @@ uint16_t read_request(int fd, char *path_reply_path){
         read(fd, &task_id, sizeof(uint64_t));
         task_id = htobe64(task_id);
         fd_reply = open(path_reply_path, O_WRONLY);
-        if(task_id>nb_task_created()){
+        if(task_id>nb_task_created() || task_id<0){
             write(fd_reply, "ERNF", sizeof(uint16_t)*2);
         }else if(!task_executed(task_id)){
             write(fd_reply, "ERNR", sizeof(uint16_t)*2);
@@ -208,8 +205,17 @@ uint16_t read_request(int fd, char *path_reply_path){
     case CLIENT_REQUEST_TERMINATE :
         break;
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
-       
+        read(fd, &task_id, sizeof(uint64_t));
+        task_id = htobe64(task_id);
+        fd_reply = open(path_reply_path, O_WRONLY);
+        if(task_id>nb_task_created() || task_id<0){
+            write(fd_reply, "ERNF", sizeof(uint16_t)*2);
+        }else{
+            write_reply_tx(fd_reply, task_id);
+        }
+        close(fd_reply);
         break;
   }
+  printf("finswi\n");
   return operation;
 }

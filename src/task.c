@@ -1,4 +1,6 @@
 #include "../include/task.h"
+#include <signal.h>
+
 uint64_t create_tree(struct timing *time, struct commandline *cl){
     //Récupérer le nombre de tâches
     uint64_t nbtask = nb_task_created();
@@ -31,7 +33,7 @@ uint64_t create_tree(struct timing *time, struct commandline *cl){
     close(fd);
     
     sprintf(file, "./run/task/%s/exitcodes", id);
-    fd = open(file,  O_CREAT);
+    fd = open(file,  O_CREAT, 0777);
     close(fd);
     
     return nbtask+1;
@@ -188,7 +190,7 @@ int task_executed(uint64_t id){
     return 1;
 }
 
-int exitcode_task(int pid_child, uint8_t exitcode){
+int exitcode_task(int pid_child, uint16_t exitcode){
     char file[40];
     int nb_task = nb_task_created();
     struct stat st;
@@ -196,27 +198,45 @@ int exitcode_task(int pid_child, uint8_t exitcode){
     int fd_exitcode;
     char pid_char[25];
     int pid;
-    for(uint64_t i=0; i<nb_task; i++){
+    for(uint64_t i=1; i<nb_task+1; i++){
         sprintf(file, "./run/task/%lu/pid", i);
         if (stat(file, &st) == -1 || st.st_size==0) {
             continue;
         }
         fd_pid = open(file, O_RDONLY);
-        
         read(fd_pid, pid_char, sizeof(int));
         sscanf(pid_char, "%u", &pid);
-        printf("%d==%d\n", pid, pid_child);
         if(pid_child==pid){
-            printf("gagné\n");
-            sprintf(file, "./run/task/%lu/exitcode", i);
+            unlink(file);
+            sprintf(file, "./run/task/%lu/exitcodes", i);
             fd_exitcode = open(file, O_WRONLY | O_APPEND);
-            write(fd_exitcode, &exitcode, sizeof(uint8_t));
+            write(fd_exitcode, &exitcode, sizeof(uint16_t));
             close(fd_exitcode);
             close(fd_pid);
             return 0;
         }
-        //printf("perdu\n");
-        
     }
+    close(fd_pid);
     return 0;
+}
+
+void kill_childs(){
+    char file[40];
+    int nb_task = nb_task_created();
+    struct stat st;
+    int fd_pid;
+    int fd_exitcode;
+    char pid_char[25];
+    int pid;
+    for(uint64_t i=1; i<nb_task+1; i++){
+        sprintf(file, "./run/task/%lu/pid", i);
+        if (stat(file, &st) == -1 || st.st_size==0) {
+            continue;
+        }
+        fd_pid = open(file, O_RDONLY);
+        read(fd_pid, pid_char, sizeof(int));
+        sscanf(pid_char, "%u", &pid);
+        kill(0,SIGKILL);
+        close(fd_pid);
+    }
 }

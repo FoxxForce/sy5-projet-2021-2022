@@ -15,9 +15,12 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/wait.h>
-void child_handler(int i){
-    
+
+int selfpipe[2];
+void child_handler(){
+    write(selfpipe[1], "",1);
 }
+
 int main(int argc, char * argv[]) {
     //Créer le répertoire task s'il n'exite pas
     struct stat st = {0};
@@ -47,22 +50,37 @@ int main(int argc, char * argv[]) {
 
     char * path_reply_pipe = malloc(sizeof(char)*1000);
     sprintf(path_reply_pipe, "%s/saturnd-reply-pipe", pipes_directory);
-
-    struct pollfd poll_fds[1];
+    
+    pipe(selfpipe);
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = child_handler;
+    sigaction(SIGCHLD, &act, NULL);
+    struct pollfd poll_fds[2];
     poll_fds[0].fd = fd;
     poll_fds[0].events = POLLIN;
-    time_t timestamp = time(NULL);
-    struct tm * tm = localtime(&timestamp);
+    poll_fds[1].fd = selfpipe[1];
+    poll_fds[1].events = POLLIN;
+    time_t timestamp;
+    struct tm * tm;
+    char buffer[1024];
+    int wstatus;
+    int pid_child;
     while(1){
         timestamp = time(NULL);
         tm = localtime(&timestamp);
-        int poll_res = poll(poll_fds, 1, (60-tm->tm_sec)*100);
+        int poll_res = poll(poll_fds, 2, (60-tm->tm_sec)*1000);
+        //int poll_res = poll(poll_fds, 2, 5000);
+        if(poll_fds[1].revents == (POLLIN)){
+            while (read(selfpipe[0], buffer, sizeof(buffer)) > 0){}
+        }
         if(poll_fds[0].revents == (POLLIN)){
             uint16_t operation = read_request(fd, path_reply_pipe); 
             if(operation==CLIENT_REQUEST_TERMINATE){
                 int fd_reply = open(path_reply_pipe, O_WRONLY);
                 write(fd_reply, "OK", sizeof(uint16_t));
                 close(fd_reply);
+                kill_childs();
                 break;
             }
         }
@@ -73,16 +91,15 @@ int main(int argc, char * argv[]) {
             poll_fds[0].events = POLLIN;
             
         }
-        int pid_child;
-        pid_t wstatus = waitpid(-1, &wstatus, WNOHANG);
-        while(wstatus>0){
-            printf("%d\n", pid_child);
+        pid_child = waitpid(-1, &wstatus, WNOHANG);
+        while(pid_child>0){
+            printf("ssokss\n");
             if(WIFEXITED(wstatus)){
-                printf("t1t1\n");
                 exitcode_task(pid_child, WEXITSTATUS(wstatus));
+            }else{
+                exitcode_task(pid_child, 0xFFFF);
             }
-            exitcode_task(pid_child, 10);
-            wstatus = waitpid(-1, &wstatus, WNOHANG);
+            pid_child = waitpid(-1, &wstatus, WNOHANG);
         }
         d= opendir(r); 
         while ((dir = readdir(d)) != NULL && poll_res==0){
@@ -115,15 +132,32 @@ int main(int argc, char * argv[]) {
                         fd = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
                         char pid[21];
                         sprintf(pid, "%u", getpid());
-                        printf("%s\n", pid);
                         write(fd, pid, sizeof(char)*strlen(pid));
                         close(fd);
-                        execvp(cl.ARGV[0], cl.ARGV);
+                        sprintf(file, "./run/task/%s/exitcodes", id_char);
+                        fd = open(file, O_WRONLY | O_APPEND);
+                        uint64_t secondes = time(NULL);
+                        write(fd, &secondes, sizeof(uint64_t));
+                        close(fd);
+                        return execvp(cl.ARGV[0], cl.ARGV);
+                        
                 }
             }
         }
         closedir(d);
     }
+    pid_child = waitpid(-1, &wstatus, WNOHANG);
+    while(pid_child>0){
+            printf("ok\n");
+            if(WIFEXITED(wstatus)){
+                exitcode_task(pid_child, WEXITSTATUS(wstatus));
+            }else{
+                exitcode_task(pid_child, 0xFFFF);
+            }
+            pid_child = waitpid(-1, &wstatus, WNOHANG);
+    }
+    close(selfpipe[0]);
+    close(selfpipe[1]);
     close(fd);
     free(path_reply_pipe);
     free(path_request_pipe);

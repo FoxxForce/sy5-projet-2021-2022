@@ -50,24 +50,50 @@ void write_reply_ls(int fd){
 
 //Envoie la réponse de la requête SO su std=1 sinon celle de SE
 void write_reply_so_se(int fd, uint64_t id, int std){
-    struct dirent *dir; 
-    char *r = "./run/task";
-    DIR *d = opendir(r); 
     char file[40];
     if(std==1){
         sprintf(file, "./run/task/%lu/stdout", id);
     }else{
         sprintf(file, "./run/task/%lu/stderr", id);
     }
-    int fd_std = open(file, O_RDONLY);
+    
     struct stat st;
     if (stat(file, &st) == -1) {
         printf("t:%d\n", errno);
         exit(1);
     } 
+    int fd_std = open(file, O_RDONLY);
     char std_string[st.st_size+1];
     read(fd_std, std_string, sizeof(char)*st.st_size);
     std_string[st.st_size] = '\0';
     write(fd, "OK", sizeof(uint16_t));
     write(fd, std_string, sizeof(char)*st.st_size);
+    close(fd_std);
+}
+
+void write_reply_tx(int fd, uint64_t id){
+    char file[60];
+    struct stat st;
+    sprintf(file, "./run/task/%lu/exitcodes", id);
+    if (stat(file, &st) == -1) {
+            exit(1);
+    }
+    uint32_t nb_exitcodes = st.st_size/10;
+    nb_exitcodes = htobe32(nb_exitcodes);
+    write(fd, "OK", sizeof(uint16_t));
+    write(fd, &nb_exitcodes, sizeof(uint32_t));
+    uint64_t time;
+    uint16_t exitcode;
+    nb_exitcodes = htobe32(nb_exitcodes);
+    int fd_exitcodes = open(file, O_RDONLY);
+    for(int i=0; i<nb_exitcodes; i++){
+        read(fd_exitcodes, &time, sizeof(uint64_t));
+        read(fd_exitcodes, &exitcode, sizeof(uint16_t));
+        time = htobe64(time);
+        exitcode = htobe16(exitcode);
+        write(fd, &time, sizeof(uint64_t));
+        write(fd, &exitcode, sizeof(uint16_t));
+    }
+    printf("finitx\n");
+    close(fd_exitcodes);
 }
