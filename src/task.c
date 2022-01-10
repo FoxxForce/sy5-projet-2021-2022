@@ -11,15 +11,15 @@ uint64_t create_tree(struct timing *time, struct commandline *cl){
     char id[21];
     sprintf(id, "%lu", nbtask+1);
     char repTask[40];
-    sprintf(repTask, "./run/task/%s", id);
+    sprintf(repTask, "%s/%s", TASK_DIR, id);
     mkdir(repTask, 0700);
-    char file[45];
-    sprintf(file, "./run/task/%s/time", id);
+    char file[100];
+    sprintf(file, "%s/%s/time", TASK_DIR, id);
     int fd = open(file,  O_CREAT | O_WRONLY, 0777);
     write(fd, timing_string, sizeof(char)*strlen(timing_string));
     close(fd);
 
-    sprintf(file, "./run/task/%s/command", id);
+    sprintf(file, "%s/%s/command", TASK_DIR, id);
     fd = open(file,  O_CREAT | O_WRONLY, S_IRWXU);
     int cl_size = commandline_size(cl);
     char commandline_string[cl_size];
@@ -27,12 +27,12 @@ uint64_t create_tree(struct timing *time, struct commandline *cl){
     write(fd, commandline_string, sizeof(char)*strlen(commandline_string));
     close(fd);
 
-    sprintf(file, "./run/task/%s/id", id);
+    sprintf(file, "%s/%s/id", TASK_DIR, id);
     fd = open(file,  O_CREAT | O_WRONLY, S_IRWXU);
     write(fd, id, sizeof(char)*strlen(id));
     close(fd);
     
-    sprintf(file, "./run/task/%s/exitcodes", id);
+    sprintf(file, "%s/%s/exitcodes", TASK_DIR, id);
     fd = open(file,  O_CREAT, 0777);
     close(fd);
     
@@ -42,8 +42,7 @@ uint64_t create_tree(struct timing *time, struct commandline *cl){
 int nb_task_created(){
     int nbtask = 0;
     struct dirent *dir; 
-    char *r = "./run/task";
-    DIR *d = opendir(r); 
+    DIR *d = opendir(TASK_DIR); 
     while ((dir = readdir(d)) != NULL){
         nbtask++;
     }
@@ -54,8 +53,7 @@ int nb_task_created(){
 int nb_task(){
     int nbtask = 0;
     struct dirent *dir; 
-    char *r = "./run/task";
-    DIR *d = opendir(r); 
+    DIR *d = opendir(TASK_DIR); 
     uint64_t id;
     while ((dir = readdir(d)) != NULL){
         if(strcmp(dir->d_name, "..")==0 || strcmp(dir->d_name, ".")==0){
@@ -72,7 +70,7 @@ int nb_task(){
 
 int is_remove_task(int task_id){
     char task[40];
-    sprintf(task, "./run/task/%d", task_id);
+    sprintf(task, "%s/%d", TASK_DIR, task_id);
     struct dirent *dir; 
     DIR *d = opendir(task); 
     char file[1024];
@@ -88,13 +86,13 @@ int is_remove_task(int task_id){
 
 //Ajoute un fichier nommé `remove` dans le répertoire de la tâche task_id pour supprimer la tâche
 int remove_task(int task_id){
-    char task[40];
-    sprintf(task, "./run/task/%d", task_id);
+    char task[150];
+    sprintf(task, "%s/%d", TASK_DIR, task_id);
     struct stat st = {0};
     if (stat(task, &st) == -1 || is_remove_task(task_id)) {
         return -1;
     }
-    char remove[50];
+    char remove[200];
     sprintf(remove, "%s/remove", task);
     int fd = open(remove,  O_CREAT , 0777);
     close(fd);
@@ -102,8 +100,8 @@ int remove_task(int task_id){
 }
 
 void task_commandline(uint64_t id, struct commandline *cl){
-    char file[40];
-    sprintf(file, "./run/task/%lu/command", id);
+    char file[150];
+    sprintf(file, "%s/%lu/command", TASK_DIR, id);
     struct stat st;
     if (stat(file, &st) == -1) {
         printf("c:%d\n", errno);
@@ -144,7 +142,7 @@ void task_commandline(uint64_t id, struct commandline *cl){
 
 void task_timing(uint64_t id, struct timing *time){
     char file[40];
-    sprintf(file, "./run/task/%lu/time", id);
+    sprintf(file, "%s/%lu/time", TASK_DIR, id);
     struct stat st;
     if (stat(file, &st) == -1) {
         printf("t:%d\n", errno);
@@ -181,8 +179,8 @@ void task_timing(uint64_t id, struct timing *time){
 
 //renvoie 1 si la tâche a été exécutée au moins une fois sinon 0
 int task_executed(uint64_t id){
-    char file[40];
-    sprintf(file, "./run/task/%lu/stdout", id);
+    char file[100];
+    sprintf(file, "%s/%lu/stdout", TASK_DIR, id);
     struct stat st;
     if (stat(file, &st) == -1) {
         return 0;
@@ -199,7 +197,7 @@ int exitcode_task(int pid_child, uint16_t exitcode){
     char pid_char[25];
     int pid;
     for(uint64_t i=1; i<nb_task+1; i++){
-        sprintf(file, "./run/task/%lu/pid", i);
+        sprintf(file, "%s/%lu/pid", TASK_DIR, i);
         if (stat(file, &st) == -1 || st.st_size==0) {
             continue;
         }
@@ -208,7 +206,7 @@ int exitcode_task(int pid_child, uint16_t exitcode){
         sscanf(pid_char, "%u", &pid);
         if(pid_child==pid){
             unlink(file);
-            sprintf(file, "./run/task/%lu/exitcodes", i);
+            sprintf(file, "%s/%lu/exitcodes", TASK_DIR, i);
             fd_exitcode = open(file, O_WRONLY | O_APPEND);
             write(fd_exitcode, &exitcode, sizeof(uint16_t));
             close(fd_exitcode);
@@ -221,7 +219,7 @@ int exitcode_task(int pid_child, uint16_t exitcode){
 }
 
 void kill_childs(){
-    char file[40];
+    char file[100];
     int nb_task = nb_task_created();
     struct stat st;
     int fd_pid;
@@ -229,7 +227,7 @@ void kill_childs(){
     char pid_char[25];
     int pid;
     for(uint64_t i=1; i<nb_task+1; i++){
-        sprintf(file, "./run/task/%lu/pid", i);
+        sprintf(file, "%s/%lu/pid", TASK_DIR,i);
         if (stat(file, &st) == -1 || st.st_size==0) {
             continue;
         }

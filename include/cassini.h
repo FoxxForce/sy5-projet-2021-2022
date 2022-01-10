@@ -19,5 +19,6 @@
 #include <endian.h>
 #include "client-request.h"
 #include "server-reply.h"
+#include "path.h"
 
 #endif // CASSINI

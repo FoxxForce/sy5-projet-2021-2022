@@ -21,8 +21,7 @@ void write_commandline_in_pipe(int fd, struct commandline *cl){
 
 void write_reply_ls(int fd){
     struct dirent *dir; 
-    char *r = "./run/task";
-    DIR *d = opendir(r); 
+    DIR *d = opendir(TASK_DIR); 
     write(fd, "OK", sizeof(uint16_t));
     uint32_t nbtask = htobe32(nb_task());
     write(fd, &nbtask, sizeof(uint32_t));
@@ -50,11 +49,11 @@ void write_reply_ls(int fd){
 
 //Envoie la réponse de la requête SO su std=1 sinon celle de SE
 void write_reply_so_se(int fd, uint64_t id, int std){
-    char file[40];
+    char file[100];
     if(std==1){
-        sprintf(file, "./run/task/%lu/stdout", id);
+        sprintf(file, "%s/%lu/stdout", TASK_DIR, id);
     }else{
-        sprintf(file, "./run/task/%lu/stderr", id);
+        sprintf(file, "%s/%lu/stderr", TASK_DIR, id);
     }
     
     struct stat st;
@@ -72,9 +71,9 @@ void write_reply_so_se(int fd, uint64_t id, int std){
 }
 
 void write_reply_tx(int fd, uint64_t id){
-    char file[60];
+    char file[100];
     struct stat st;
-    sprintf(file, "./run/task/%lu/exitcodes", id);
+    sprintf(file, "%s/%lu/exitcodes", TASK_DIR, id);
     if (stat(file, &st) == -1) {
             exit(1);
     }
@@ -94,6 +93,5 @@ void write_reply_tx(int fd, uint64_t id){
         write(fd, &time, sizeof(uint64_t));
         write(fd, &exitcode, sizeof(uint16_t));
     }
-    printf("finitx\n");
     close(fd_exitcodes);
 }

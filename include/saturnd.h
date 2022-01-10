@@ -17,5 +17,6 @@
 #include <dirent.h>
 #include <sys/wait.h>
 #include "request-saturnd.h" 
+#include "path.h"
 
 #endif // SATURND

@@ -101,9 +101,8 @@ int main(int argc, char * argv[]) {
   // | TODO |
   // --------
   if(pipes_directory==NULL){
-      char *username = getenv("USER");
-      pipes_directory = malloc(500);
-      sprintf(pipes_directory, "/tmp/%s/saturnd/pipes", username);
+    pipes_directory = malloc(sizeof(char)*1000);
+    strcpy(pipes_directory, PIPES_DIR);
   }
   int attributs;
   
@@ -135,7 +134,6 @@ int main(int argc, char * argv[]) {
         struct commandline cl;
         commandline_from_arguments(&cl, argc, argv);
         write_commandline_in_pipe(fd, &cl);
-         //sleep(5);
         fd2 = open(path_reply_pipe, O_RDONLY);
         read(fd2, reptype, sizeof(uint16_t));
         read(fd2, &id, sizeof(uint64_t));
@@ -201,6 +199,7 @@ int main(int argc, char * argv[]) {
   free(reptype);
   close(fd);
   close(fd2);
+  free(pipes_directory);
   pipes_directory = NULL;
   return EXIT_FAILURE;
 }

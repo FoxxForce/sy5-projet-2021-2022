@@ -13,7 +13,7 @@ uint64_t read_request_cr(int fd){
     return id;
 }
 
-uint16_t read_request(int fd, char *path_reply_path){
+uint16_t read_request(int fd, const char *path_reply_path){
     uint16_t operation;
     read(fd, &operation, sizeof(uint16_t));
     operation = htobe16(operation);
@@ -85,6 +85,5 @@ uint16_t read_request(int fd, char *path_reply_path){
         close(fd_reply);
         break;
   }
-  printf("finswi\n");
   return operation;
 }

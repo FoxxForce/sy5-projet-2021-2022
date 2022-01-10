@@ -19,6 +19,7 @@
 #include <string.h>
 #include <time.h>
 #include <signal.h>
+#include "path.h"
 
 uint64_t create_tree(struct timing *time, struct commandline *cl);
 int remove_task(int task_id);
