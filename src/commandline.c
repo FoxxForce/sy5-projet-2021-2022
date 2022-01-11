@@ -41,6 +41,7 @@ void free_commandline(struct commandline *cl){
     }
     free(cl->ARGV);
 }
+
 void print_commandline(struct commandline *cl){
     for(int i=0; i<cl->ARGC; i++){
        printf("%s ", cl->ARGV[i]);

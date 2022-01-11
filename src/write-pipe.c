@@ -1,6 +1,6 @@
 #include "../include/write-pipe.h"
 
-
+//Envoie une requête CR à saturnd
 void write_request_cr(int fd, struct commandline *cl, struct timing *time){
     int position = 0;
     int size = commandline_size(cl) + sizeof(struct timing) + 30;
@@ -28,7 +28,7 @@ void write_request_cr(int fd, struct commandline *cl, struct timing *time){
     }
     write(fd, buffer, position);
 }
-//Envoie la réponse de la requête SO su std=1 sinon celle de SE
+//Envoie la réponse de la requête SO si std=1 sinon celle de SE
 void write_reply_so_se(int fd, uint64_t id, int std){
     char file[100];
     if(std==1){
@@ -39,7 +39,6 @@ void write_reply_so_se(int fd, uint64_t id, int std){
     
     struct stat st;
     if (stat(file, &st) == -1) {
-        printf("t:%d\n", errno);
         exit(1);
     } 
     int fd_std = open(file, O_RDONLY);
@@ -47,12 +46,16 @@ void write_reply_so_se(int fd, uint64_t id, int std){
     read(fd_std, std_string, sizeof(char)*st.st_size);
     std_string[st.st_size] = '\0';
     char buffer[st.st_size+10];
+    uint32_t size = st.st_size;
+    size = htobe32(size);
     memcpy(buffer, "OK", sizeof(uint16_t));
-    memcpy(buffer+sizeof(uint16_t), std_string, st.st_size);
-    write(fd, buffer, st.st_size + sizeof(uint16_t));
+    memcpy(buffer+sizeof(uint16_t), &size, sizeof(uint32_t));
+    memcpy(buffer+sizeof(uint16_t)+sizeof(uint32_t), std_string, st.st_size);
+    write(fd, buffer, st.st_size + sizeof(uint16_t)+sizeof(uint32_t));
     close(fd_std);
 }
 
+//Envoie la réponse d'une requête TX à cassini
 void write_reply_tx(int fd, uint64_t id){
     char file[100];
     struct stat st;
@@ -64,29 +67,29 @@ void write_reply_tx(int fd, uint64_t id){
     nb_exitcodes = htobe32(nb_exitcodes);
     int position = 0;
     char buffer[st.st_size + 100];
-    memcpy(buffer, "OK", sizeof(uint16_t));
+    memcpy(buffer+position, "OK", sizeof(uint16_t));
     position += sizeof(uint16_t);
-    memcpy(buffer, &nb_exitcodes, sizeof(uint32_t));
+    memcpy(buffer+position, &nb_exitcodes, sizeof(uint32_t));
     position += sizeof(uint32_t);
-    uint64_t time;
+    int64_t time;
     uint16_t exitcode;
     nb_exitcodes = htobe32(nb_exitcodes);
     int fd_exitcodes = open(file, O_RDONLY);
     for(int i=0; i<nb_exitcodes; i++){
-        read(fd_exitcodes, &time, sizeof(uint64_t));
+        read(fd_exitcodes, &time, sizeof(int64_t));
         read(fd_exitcodes, &exitcode, sizeof(uint16_t));
         time = htobe64(time);
         exitcode = htobe16(exitcode);
-        memcpy(buffer, &time, sizeof(uint64_t));
-        position += sizeof(uint64_t);
-        memcpy(buffer, &exitcode, sizeof(uint16_t));
+        memcpy(buffer+position, &time, sizeof(int64_t));
+        position += sizeof(int64_t);
+        memcpy(buffer+position, &exitcode, sizeof(uint16_t));
         position += sizeof(uint16_t);
     }
     write(fd, buffer, position);
     close(fd_exitcodes);
 }
 
-
+//Envoie la réponse d'une requête LS à cassini
 void write_reply_ls(int fd){
     struct dirent *dir; 
     DIR *d = opendir(TASK_DIR); 

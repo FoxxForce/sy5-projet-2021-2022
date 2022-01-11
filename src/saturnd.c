@@ -6,7 +6,7 @@ void child_handler(){
 }
 
 int main(int argc, char * argv[]) {
-    //Créer le répertoire task s'il n'exite pas
+    //Crée les répertoires contenant les tubes et les arborecences des tâches s'ils n'exitent pas
     struct stat st = {0};
     if (stat(SATURND_DIR, &st) == -1) {
         mkdir(SATURND_DIR , 0744);
@@ -15,7 +15,6 @@ int main(int argc, char * argv[]) {
         mkfifo(PIPE_REQUEST , 0744);
         mkfifo(PIPE_REPLY , 0744);
     }
-
     
     struct dirent *dir; 
     DIR *d;
@@ -42,11 +41,10 @@ int main(int argc, char * argv[]) {
         timestamp = time(NULL);
         tm = localtime(&timestamp);
         int poll_res = poll(poll_fds, 2, (60-tm->tm_sec)*1000);
-        printf("toto\n");
-        //int poll_res = poll(poll_fds, 2, 5000);
         if(poll_fds[1].revents == (POLLIN)){
             while (read(selfpipe[0], buffer, sizeof(buffer)) > 0){}
         }
+        //Traitement des requêtes
         if(poll_fds[0].revents == (POLLIN)){
             uint16_t operation = read_request(fd, PIPE_REPLY); 
             if(operation==CLIENT_REQUEST_TERMINATE){
@@ -57,13 +55,15 @@ int main(int argc, char * argv[]) {
                 break;
             }
         }
+
         if(poll_fds[0].revents!=0){
             close(fd);
             fd = open(PIPE_REQUEST, O_RDONLY | O_NONBLOCK);
             poll_fds[0].fd = fd;
-            poll_fds[0].events = POLLIN;
-            
+            poll_fds[0].events = POLLIN; 
         }
+
+        //Récupération du code de retour des tâches exécutées
         pid_child = waitpid(-1, &wstatus, WNOHANG);
         while(pid_child>0){
             if(WIFEXITED(wstatus)){
@@ -74,6 +74,8 @@ int main(int argc, char * argv[]) {
             pid_child = waitpid(-1, &wstatus, WNOHANG);
         }
         d= opendir(TASK_DIR); 
+
+        //vérifie s'il y a des tâches à exécuter
         while ((dir = readdir(d)) != NULL && poll_res==0){
             if(strcmp(dir->d_name, "..")==0 || strcmp(dir->d_name, ".")==0){
                 continue;
@@ -90,34 +92,35 @@ int main(int argc, char * argv[]) {
                         char id_char[21];
                         sprintf(id_char, "%lu", id);
                         char file[150];
-                        sprintf(file, "%s/%s/stdout", TASK_DIR, id_char);
-                        printf("%s\n", file);
-                        task_commandline(id, &cl);
-                        int fd2 = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
-                        dup2(fd2, 1);
-                        close(fd2);
-                        sprintf(file, "%s/%s/stderr",TASK_DIR, id_char);
-                        fd2 = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
-                        dup2(fd2, 2);
-                        close(fd2);
-                        sprintf(file, ".%s/%s/pid", TASK_DIR, id_char);
-                        fd2 = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
-                        char pid[21];
-                        sprintf(pid, "%u", getpid());
-                        write(fd, pid, sizeof(char)*strlen(pid));
-                        close(fd2);
                         sprintf(file, "%s/%s/exitcodes", TASK_DIR, id_char);
-                        fd2 = open(file, O_WRONLY | O_APPEND);
-                        uint64_t secondes = time(NULL);
+                        int fd2 = open(file, O_WRONLY | O_APPEND);
+                        int64_t secondes = time(NULL);
                         write(fd2, &secondes, sizeof(uint64_t));
                         close(fd2);
+
+                        sprintf(file, "%s/%s/pid", TASK_DIR, id_char);
+                        fd2 = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
+                        char pid[21];
+                        sprintf(pid, "%d", getpid());
+                        write(fd2, pid, sizeof(char)*strlen(pid));
+                        close(fd2);
+                        sprintf(file, "%s/%s/stdout", TASK_DIR, id_char);
+                        task_commandline(id, &cl);
+                        fd2 = open(file,  O_CREAT | O_WRONLY, 0777);
+                        dup2(fd2, 1);
+                        close(fd2);
+
+                        sprintf(file, "%s/%s/stderr",TASK_DIR, id_char);
+                        fd2 = open(file,  O_CREAT | O_WRONLY, 0777);
+                        dup2(fd2, 2);
+                        close(fd2);
+                        
                         close(selfpipe[0]);
                         close(selfpipe[1]);
                         close(fd);
                         closedir(d);
-                        int r = execvp(cl.ARGV[0], cl.ARGV);
-                        free_commandline(&cl);
-                        return r;
+                        execvp(cl.ARGV[0], cl.ARGV);
+                        return -1;
                         
                 }
             }
@@ -136,4 +139,5 @@ int main(int argc, char * argv[]) {
     close(selfpipe[0]);
     close(selfpipe[1]);
     close(fd);
+    return EXIT_SUCCESS;
 }

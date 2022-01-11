@@ -1,5 +1,6 @@
 #include "../include/request-saturnd.h" 
 
+//Fonctions servant à traier les requêtes
 
 uint64_t read_request_cr(int fd){
     struct timing timingTask;

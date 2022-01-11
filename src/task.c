@@ -1,11 +1,8 @@
 #include "../include/task.h"
 
-
+//Crée l'arborecence d'une nouvelle tâche
 uint64_t create_tree(struct timing *time, struct commandline *cl){
-    //Récupérer le nombre de tâches
     uint64_t nbtask = nb_task_created();
-    
-    
     char timing_string[TIMING_TEXT_MIN_BUFFERSIZE];
     timing_string_from_timing(timing_string, time);
     char id[21];
@@ -39,6 +36,7 @@ uint64_t create_tree(struct timing *time, struct commandline *cl){
     return nbtask+1;
 }
 
+//Renvoie le nombre de tâches créées
 int nb_task_created(){
     int nbtask = 0;
     struct dirent *dir; 
@@ -50,6 +48,8 @@ int nb_task_created(){
     closedir(d);
     return nbtask;
 }
+
+//Renvoie le nombre de tâches actuelles (qui n'ont pas été supprimées)
 int nb_task(){
     int nbtask = 0;
     struct dirent *dir; 
@@ -68,6 +68,7 @@ int nb_task(){
     return nbtask;
 }
 
+//Renvoie 1 si la correspondant à task_id a été supprimée sinon 0
 int is_remove_task(int task_id){
     char task[40];
     sprintf(task, "%s/%d", TASK_DIR, task_id);
@@ -99,12 +100,12 @@ int remove_task(int task_id){
     return 0;
 }
 
+//Ecrit dans cl la commande de la tâche id
 void task_commandline(uint64_t id, struct commandline *cl){
     char file[150];
     sprintf(file, "%s/%lu/command", TASK_DIR, id);
     struct stat st;
     if (stat(file, &st) == -1) {
-        printf("c:%d\n", errno);
         exit(1);
     }
     char command[st.st_size + 2];
@@ -140,6 +141,7 @@ void task_commandline(uint64_t id, struct commandline *cl){
     argv[nb_words] = NULL;
 }
 
+//Ecrit dans time le timing de la tâche id
 void task_timing(uint64_t id, struct timing *time){
     char file[40];
     sprintf(file, "%s/%lu/time", TASK_DIR, id);
@@ -188,6 +190,7 @@ int task_executed(uint64_t id){
     return 1;
 }
 
+//Ecrit dans le fichier exitcode de la tâche ayant comme pid pid_child pendant son exécution 
 int exitcode_task(int pid_child, uint16_t exitcode){
     char file[150];
     int nb_task = nb_task_created();
@@ -203,7 +206,7 @@ int exitcode_task(int pid_child, uint16_t exitcode){
         }
         fd_pid = open(file, O_RDONLY);
         read(fd_pid, pid_char, sizeof(int));
-        sscanf(pid_char, "%u", &pid);
+        sscanf(pid_char, "%d", &pid);
         if(pid_child==pid){
             unlink(file);
             sprintf(file, "%s/%lu/exitcodes", TASK_DIR, i);
@@ -218,6 +221,7 @@ int exitcode_task(int pid_child, uint16_t exitcode){
     return 0;
 }
 
+//Tue tous les processus exécutant une tâche
 void kill_childs(){
     char file[100];
     int nb_task = nb_task_created();
@@ -234,7 +238,7 @@ void kill_childs(){
         fd_pid = open(file, O_RDONLY);
         read(fd_pid, pid_char, sizeof(int));
         sscanf(pid_char, "%u", &pid);
-        kill(0,SIGKILL);
+        kill(pid,SIGKILL);
         close(fd_pid);
     }
 }

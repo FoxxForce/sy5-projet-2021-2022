@@ -202,7 +202,6 @@ int main(int argc, char * argv[]) {
   free(reptype);
   close(fd);
   close(fd2);
-  free(pipes_directory);
   pipes_directory = NULL;
   return EXIT_FAILURE;
 }
