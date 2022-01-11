@@ -78,10 +78,8 @@ int main(int argc, char * argv[]) {
         pid_child = waitpid(-1, &wstatus, WNOHANG);
         while(pid_child>0){
             if(WIFEXITED(wstatus)){
-                printf("wait\n");
                 exitcode_task(pid_child, WEXITSTATUS(wstatus));
             }else{
-                printf("nowait\n");
                 exitcode_task(pid_child, 0xFFFF);
             }
             pid_child = waitpid(-1, &wstatus, WNOHANG);

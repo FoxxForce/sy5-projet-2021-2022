@@ -218,7 +218,6 @@ int exitcode_task(int pid_child, uint16_t exitcode){
         read(fd_pid, pid_char, sizeof(int));
         sscanf(pid_char, "%d", &pid);
         if(pid_child==pid){
-            printf("%d==%d exit: %d\n", pid_child, pid, exitcode);
             unlink(file);
             sprintf(file, "%s/%lu/exitcodes", TASK_DIR, i);
             fd_exitcode = open(file, O_WRONLY | O_APPEND);

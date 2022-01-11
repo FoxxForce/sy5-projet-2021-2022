@@ -153,7 +153,7 @@ int size_reply_ls(){
     char file[100];
     int nb_task = nb_task_created();
     struct stat st;
-    int size = nb_task*sizeof(struct timing);
+    int size = nb_task*(sizeof(uint64_t)+ sizeof(uint32_t)+ sizeof(uint8_t));
     for(uint64_t i=1; i<nb_task+1; i++){
         sprintf(file, "%s/%lu/command", TASK_DIR,i);
         if (stat(file, &st) == -1) {

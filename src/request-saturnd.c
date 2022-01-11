@@ -4,7 +4,7 @@
 
 uint64_t read_request_cr(int fd){
     struct timing timingTask;
-    char *timingString = malloc(sizeof(struct timing));
+    char *timingString = malloc(sizeof(uint64_t)+ sizeof(uint32_t)+ sizeof(uint8_t) + 50);
     if(timingString==NULL){
         return -1;
     }
