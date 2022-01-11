@@ -161,6 +161,6 @@ int size_reply_ls(){
         }
         size += st.st_size;
     }
-    return size + 100;
+    return size + 2000;
 }
 
