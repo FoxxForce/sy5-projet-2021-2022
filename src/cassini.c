@@ -117,7 +117,7 @@ int main(int argc, char * argv[]) {
   if(fd2==-1 || fd==-1){
       goto error;
   }
-
+  char buffer[50];
   char *reptype = malloc(sizeof(uint16_t));
   uint64_t id;
   switch(operation){
@@ -127,42 +127,44 @@ int main(int argc, char * argv[]) {
         read_reply_ls(fd2);
         break;
     case CLIENT_REQUEST_CREATE_TASK :
-        write(fd, "CR", 2);
+        ;
         struct timing time;
-        timing_from_strings(&time, minutes_str, hours_str, daysofweek_str);
-        write_timing_in_pipe(fd,&time);
         struct commandline cl;
         commandline_from_arguments(&cl, argc, argv);
-        write_commandline_in_pipe(fd, &cl);
+        timing_from_strings(&time, minutes_str, hours_str, daysofweek_str);
+        write_request_cr(fd, &cl, &time);
         fd2 = open(path_reply_pipe, O_RDONLY);
         read(fd2, reptype, sizeof(uint16_t));
         read(fd2, &id, sizeof(uint64_t));
         id = htobe64(id);
-        printf("%lu", id);
+        printf("%lu\n", id);
         free_commandline(&cl);
         break;
     case CLIENT_REQUEST_REMOVE_TASK :
-        write(fd, "RM", 2);
+        memcpy(buffer, "RM", sizeof(uint16_t));
         taskid = htobe64(taskid);
-        write(fd, &taskid, sizeof(uint64_t));
+        memcpy(buffer+sizeof(uint16_t), &taskid, sizeof(uint64_t));
+        write(fd, buffer, sizeof(uint16_t)+sizeof(uint64_t));
         fd2 = open(path_reply_pipe, O_RDONLY);
         if(read_reply_rm(fd2)==-1){
             goto error;
         }
         break;
     case CLIENT_REQUEST_GET_STDOUT :
-        write(fd,"SO", 2);
+        memcpy(buffer, "SO", sizeof(uint16_t));
         taskid = htobe64(taskid);
-        write(fd, &taskid, sizeof(uint64_t));
+        memcpy(buffer+sizeof(uint16_t), &taskid, sizeof(uint64_t));
+        write(fd, buffer, sizeof(uint16_t)+sizeof(uint64_t));
         fd2 = open(path_reply_pipe, O_RDONLY);
         if(read_reply_so_se(fd2)==-1){
             goto error;
         }
         break;
     case CLIENT_REQUEST_GET_STDERR :
-        write(fd,"SE", 2);
+        memcpy(buffer, "SE", sizeof(uint16_t));
         taskid = htobe64(taskid);
-        write(fd, &taskid, sizeof(uint64_t));
+        memcpy(buffer+sizeof(uint16_t), &taskid, sizeof(uint64_t));
+        write(fd, buffer, sizeof(uint16_t)+sizeof(uint64_t));
         fd2 = open(path_reply_pipe, O_RDONLY);
         if(read_reply_so_se(fd2)==-1){
             goto error;
@@ -174,9 +176,10 @@ int main(int argc, char * argv[]) {
         read(fd2, reptype, sizeof(uint16_t));
         break;
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
-        write(fd,"TX", 2);
+        memcpy(buffer, "TX", sizeof(uint16_t));
         taskid = htobe64(taskid);
-        write(fd, &taskid, sizeof(uint64_t));
+        memcpy(buffer+sizeof(uint16_t), &taskid, sizeof(uint64_t));
+        write(fd, buffer, sizeof(uint16_t)+sizeof(uint64_t));
         fd2 = open(path_reply_pipe, O_RDONLY);
         if(read_reply_tx(fd2)==-1){
             goto error;

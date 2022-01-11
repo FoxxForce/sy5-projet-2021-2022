@@ -14,6 +14,7 @@ uint64_t read_request_cr(int fd){
 }
 
 uint16_t read_request(int fd, const char *path_reply_path){
+    char buffer[50];
     uint16_t operation;
     read(fd, &operation, sizeof(uint16_t));
     operation = htobe16(operation);
@@ -27,11 +28,11 @@ uint16_t read_request(int fd, const char *path_reply_path){
         break;
     case CLIENT_REQUEST_CREATE_TASK :
         task_id = read_request_cr(fd);
-        char reply[30];
         task_id = htobe64(task_id);
         fd_reply = open(path_reply_path, O_WRONLY);
-        write(fd_reply, "OK",sizeof(uint16_t));
-        write(fd_reply, &task_id,sizeof(uint64_t));
+        memcpy(buffer, "OK", sizeof(uint16_t));
+        memcpy(buffer+sizeof(uint16_t), &task_id, sizeof(uint64_t));
+        write(fd_reply, buffer, sizeof(uint16_t)+sizeof(uint64_t));
         close(fd_reply);
         break;
     case CLIENT_REQUEST_REMOVE_TASK :

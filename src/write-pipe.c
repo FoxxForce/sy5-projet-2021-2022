@@ -1,52 +1,33 @@
 #include "../include/write-pipe.h"
 
-void write_timing_in_pipe(int fd, struct timing *time){
+
+void write_request_cr(int fd, struct commandline *cl, struct timing *time){
+    int position = 0;
+    int size = commandline_size(cl) + sizeof(struct timing) + 30;
+    char buffer[size];
+    memcpy(buffer+position, "CR", sizeof(uint16_t));
+    position += sizeof(uint16_t);
     uint64_t minutes = htobe64(time->minutes);
     uint32_t hours = htobe32(time->hours);
-    write(fd, &minutes, sizeof(uint64_t));
-    write(fd, &hours, sizeof(uint32_t));
-    write(fd, &time->daysofweek, sizeof(uint8_t));
-}
-
-void write_commandline_in_pipe(int fd, struct commandline *cl){
+    memcpy(buffer+position, &minutes, sizeof(uint64_t));
+    position += sizeof(uint64_t);
+    memcpy(buffer+position, &hours, sizeof(uint32_t));
+    position += sizeof(uint32_t);
+    memcpy(buffer+position, &time->daysofweek, sizeof(uint8_t));
+    position += sizeof(uint8_t);
     uint32_t  argc = htobe32(cl->ARGC);
-    write(fd, &argc, sizeof(uint32_t));
+    memcpy(buffer+position, &argc, sizeof(uint32_t));
+    position += sizeof(uint32_t);
     for(int i=0; i<cl->ARGC; i++){
         uint32_t  length = strlen(cl->ARGV[i]);
         length = htobe32(length);
-        write(fd, &length, sizeof(uint32_t));
-        write(fd, cl->ARGV[i], htobe32(length));
+        memcpy(buffer+position, &length, sizeof(uint32_t));
+        position += sizeof(uint32_t);
+        memcpy(buffer+position, cl->ARGV[i], htobe32(length));
+        position += htobe32(length);
     }
+    write(fd, buffer, position);
 }
-
-void write_reply_ls(int fd){
-    struct dirent *dir; 
-    DIR *d = opendir(TASK_DIR); 
-    write(fd, "OK", sizeof(uint16_t));
-    uint32_t nbtask = htobe32(nb_task());
-    write(fd, &nbtask, sizeof(uint32_t));
-    while ((dir = readdir(d)) != NULL){
-        if(strcmp(dir->d_name, ".")!=0 && strcmp(dir->d_name, "..")!=0){
-            struct commandline cl;
-            struct timing time;
-            uint64_t id;
-            sscanf(dir->d_name, "%lu", &id);
-            if(is_remove_task(id)){
-                continue;
-            }
-            task_commandline(id, &cl);
-            task_timing(id, &time);
-            id = htobe64(id);
-            write(fd, &id, sizeof(uint64_t));
-            write_timing_in_pipe(fd, &time);
-            write_commandline_in_pipe(fd, &cl);
-            free_commandline(&cl);
-        }
-    }
-   
-    closedir(d);
-}
-
 //Envoie la réponse de la requête SO su std=1 sinon celle de SE
 void write_reply_so_se(int fd, uint64_t id, int std){
     char file[100];
@@ -65,8 +46,10 @@ void write_reply_so_se(int fd, uint64_t id, int std){
     char std_string[st.st_size+1];
     read(fd_std, std_string, sizeof(char)*st.st_size);
     std_string[st.st_size] = '\0';
-    write(fd, "OK", sizeof(uint16_t));
-    write(fd, std_string, sizeof(char)*st.st_size);
+    char buffer[st.st_size+10];
+    memcpy(buffer, "OK", sizeof(uint16_t));
+    memcpy(buffer+sizeof(uint16_t), std_string, st.st_size);
+    write(fd, buffer, st.st_size + sizeof(uint16_t));
     close(fd_std);
 }
 
@@ -79,8 +62,12 @@ void write_reply_tx(int fd, uint64_t id){
     }
     uint32_t nb_exitcodes = st.st_size/10;
     nb_exitcodes = htobe32(nb_exitcodes);
-    write(fd, "OK", sizeof(uint16_t));
-    write(fd, &nb_exitcodes, sizeof(uint32_t));
+    int position = 0;
+    char buffer[st.st_size + 100];
+    memcpy(buffer, "OK", sizeof(uint16_t));
+    position += sizeof(uint16_t);
+    memcpy(buffer, &nb_exitcodes, sizeof(uint32_t));
+    position += sizeof(uint32_t);
     uint64_t time;
     uint16_t exitcode;
     nb_exitcodes = htobe32(nb_exitcodes);
@@ -90,8 +77,79 @@ void write_reply_tx(int fd, uint64_t id){
         read(fd_exitcodes, &exitcode, sizeof(uint16_t));
         time = htobe64(time);
         exitcode = htobe16(exitcode);
-        write(fd, &time, sizeof(uint64_t));
-        write(fd, &exitcode, sizeof(uint16_t));
+        memcpy(buffer, &time, sizeof(uint64_t));
+        position += sizeof(uint64_t);
+        memcpy(buffer, &exitcode, sizeof(uint16_t));
+        position += sizeof(uint16_t);
     }
+    write(fd, buffer, position);
     close(fd_exitcodes);
 }
+
+
+void write_reply_ls(int fd){
+    struct dirent *dir; 
+    DIR *d = opendir(TASK_DIR); 
+    uint32_t nbtask = htobe32(nb_task());
+    int size = size_reply_ls();
+    char buffer[size];
+    int position = 0;
+    memcpy(buffer+position, "OK", sizeof(uint16_t));
+    position += sizeof(uint16_t);
+    memcpy(buffer+position, &nbtask, sizeof(uint32_t));
+    position += sizeof(uint32_t);
+    while ((dir = readdir(d)) != NULL){
+        if(strcmp(dir->d_name, ".")!=0 && strcmp(dir->d_name, "..")!=0){
+            struct commandline cl;
+            struct timing time;
+            uint64_t id;
+            sscanf(dir->d_name, "%lu", &id);
+            if(is_remove_task(id)){
+                continue;
+            }
+            task_commandline(id, &cl);
+            task_timing(id, &time);
+            id = htobe64(id);
+            memcpy(buffer+position, &id, sizeof(uint64_t));
+            position += sizeof(uint64_t);
+            uint64_t minutes = htobe64(time.minutes);
+            uint32_t hours = htobe32(time.hours);
+            memcpy(buffer+position, &minutes, sizeof(uint64_t));
+            position += sizeof(uint64_t);
+            memcpy(buffer+position, &hours, sizeof(uint32_t));
+            position += sizeof(uint32_t);
+            memcpy(buffer+position, &time.daysofweek, sizeof(uint8_t));
+            position += sizeof(uint8_t);
+            uint32_t  argc = htobe32(cl.ARGC);
+            memcpy(buffer+position, &argc, sizeof(uint32_t));
+            position += sizeof(uint32_t);
+            for(int i=0; i<cl.ARGC; i++){
+                uint32_t  length = strlen(cl.ARGV[i]);
+                length = htobe32(length);
+                memcpy(buffer+position, &length, sizeof(uint32_t));
+                position += sizeof(uint32_t);
+                memcpy(buffer+position, cl.ARGV[i], htobe32(length));
+                position += htobe32(length);
+            }
+            free_commandline(&cl);
+        }
+    }
+    write(fd, buffer, position);
+    closedir(d);
+}
+
+int size_reply_ls(){
+    char file[100];
+    int nb_task = nb_task_created();
+    struct stat st;
+    int size = nb_task*sizeof(struct timing);
+    for(uint64_t i=1; i<nb_task+1; i++){
+        sprintf(file, "%s/%lu/command", TASK_DIR,i);
+        if (stat(file, &st) == -1) {
+            exit(1);
+        }
+        size += st.st_size;
+    }
+    return size + 100;
+}
+

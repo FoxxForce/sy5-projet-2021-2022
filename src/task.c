@@ -189,7 +189,7 @@ int task_executed(uint64_t id){
 }
 
 int exitcode_task(int pid_child, uint16_t exitcode){
-    char file[40];
+    char file[150];
     int nb_task = nb_task_created();
     struct stat st;
     int fd_pid;
@@ -238,3 +238,4 @@ void kill_childs(){
         close(fd_pid);
     }
 }
+
