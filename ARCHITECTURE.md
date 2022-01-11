@@ -30,6 +30,8 @@ L'exécution des tâches est aussi faite dans la boucle principale `while(1)`. A
 Il va ensuite écrire la date actuelle (le nombre de secondes depuis le premier janvier 1970) à la fin du fichier `exitcodes` de la tâche puis exécuter la commande contenu dans le fichier `command` de la tâche avec la fonction `execvp`.
  
 Le poll au début du `while(1)` surveille aussi le côté écriture d'un tube anonyme. Quand un processus fils qui a exécuté une tâche à fini, il envoie un signal à son père (le processus principal qui exécute saturnd) ce qui provoque une écriture sur le tube anonyme (grâce à un handler définit sur le signal SIGCHLD avec la fonction `sigaction`) et réveille l'appel à `poll`. Ensuite avec la fonction `waitpid`, pour chaque exécution terminée, on récupère le pid et on écrit dans la la fin du fichier `exitcodes` de la tâche ayant le fichier `pid`(créé par les fils) contenant le pid récupéré par l'appel à waitpid puis le fichier `pid` est supprimé. 
+
+Quand saturnd reçoit une requête `TM`, il parcourt tous les fichiers `pid` présents dans `task` et tue tous les processus fils exécutant une tâche puis récupère les codes de retours avant de terminer.
  
  
 # Cassini
