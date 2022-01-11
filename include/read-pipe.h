@@ -17,10 +17,10 @@
 #include <string.h>
 #include <time.h>
 
-void read_commandline(int fd, struct commandline *commandTask);
+int read_commandline(int fd, struct commandline *commandTask);
 void read_id(int fd);
 void read_timing(int fd, struct timing *timingTask, char *timingString);
-void read_reply_ls(int fd);
+int read_reply_ls(int fd);
 int read_reply_tx(int fd);
 int read_reply_so_se(int fd);
 int read_reply_rm(int fd);

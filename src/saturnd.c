@@ -21,7 +21,9 @@ int main(int argc, char * argv[]) {
     uint64_t id;
     uint16_t operation;
     int fd = open(PIPE_REQUEST , O_RDONLY | O_NONBLOCK);
-    
+    if(fd==-1){
+        goto error;
+    }
     pipe(selfpipe);
     struct sigaction act;
     memset(&act, 0, sizeof(act));
@@ -46,9 +48,15 @@ int main(int argc, char * argv[]) {
         }
         //Traitement des requêtes
         if(poll_fds[0].revents == (POLLIN)){
-            uint16_t operation = read_request(fd, PIPE_REPLY); 
+            uint16_t operation = read_request(fd, PIPE_REPLY);
+            if(operation==-1){
+                goto error;
+            } 
             if(operation==CLIENT_REQUEST_TERMINATE){
                 int fd_reply = open(PIPE_REPLY, O_WRONLY);
+                if(fd_reply==-1){
+                    goto error;
+                }
                 write(fd_reply, "OK", sizeof(uint16_t));
                 close(fd_reply);
                 kill_childs();
@@ -59,6 +67,9 @@ int main(int argc, char * argv[]) {
         if(poll_fds[0].revents!=0){
             close(fd);
             fd = open(PIPE_REQUEST, O_RDONLY | O_NONBLOCK);
+            if(fd==-1){
+                goto error;
+            }
             poll_fds[0].fd = fd;
             poll_fds[0].events = POLLIN; 
         }
@@ -67,8 +78,10 @@ int main(int argc, char * argv[]) {
         pid_child = waitpid(-1, &wstatus, WNOHANG);
         while(pid_child>0){
             if(WIFEXITED(wstatus)){
+                printf("wait\n");
                 exitcode_task(pid_child, WEXITSTATUS(wstatus));
             }else{
+                printf("nowait\n");
                 exitcode_task(pid_child, 0xFFFF);
             }
             pid_child = waitpid(-1, &wstatus, WNOHANG);
@@ -94,12 +107,18 @@ int main(int argc, char * argv[]) {
                         char file[150];
                         sprintf(file, "%s/%s/exitcodes", TASK_DIR, id_char);
                         int fd2 = open(file, O_WRONLY | O_APPEND);
+                        if(fd2==-1){
+                            goto error;
+                        }
                         int64_t secondes = time(NULL);
                         write(fd2, &secondes, sizeof(uint64_t));
                         close(fd2);
 
                         sprintf(file, "%s/%s/pid", TASK_DIR, id_char);
                         fd2 = open(file,  O_CREAT | O_WRONLY | O_TRUNC, 0777);
+                        if(fd2==-1){
+                            goto error;
+                        }
                         char pid[21];
                         sprintf(pid, "%d", getpid());
                         write(fd2, pid, sizeof(char)*strlen(pid));
@@ -107,11 +126,17 @@ int main(int argc, char * argv[]) {
                         sprintf(file, "%s/%s/stdout", TASK_DIR, id_char);
                         task_commandline(id, &cl);
                         fd2 = open(file,  O_CREAT | O_WRONLY, 0777);
+                        if(fd2==-1){
+                            goto error;
+                        }
                         dup2(fd2, 1);
                         close(fd2);
 
                         sprintf(file, "%s/%s/stderr",TASK_DIR, id_char);
                         fd2 = open(file,  O_CREAT | O_WRONLY, 0777);
+                        if(fd2==-1){
+                            goto error;
+                        }
                         dup2(fd2, 2);
                         close(fd2);
                         
@@ -119,8 +144,9 @@ int main(int argc, char * argv[]) {
                         close(selfpipe[1]);
                         close(fd);
                         closedir(d);
-                        execvp(cl.ARGV[0], cl.ARGV);
-                        return -1;
+                        int r = execvp(cl.ARGV[0], cl.ARGV);
+                        free_commandline(&cl);
+                        return r;
                         
                 }
             }
@@ -140,4 +166,12 @@ int main(int argc, char * argv[]) {
     close(selfpipe[1]);
     close(fd);
     return EXIT_SUCCESS;
+
+
+ error:
+  if (errno != 0) perror("main");
+    close(selfpipe[0]);
+    close(selfpipe[1]);
+    close(fd);
+  return EXIT_FAILURE;
 }

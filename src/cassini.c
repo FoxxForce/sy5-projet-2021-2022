@@ -102,29 +102,40 @@ int main(int argc, char * argv[]) {
   // --------
   if(pipes_directory==NULL){
     pipes_directory = malloc(sizeof(char)*1000);
+    if(pipes_directory==NULL){
+      return EXIT_FAILURE;
+    }
     strcpy(pipes_directory, PIPES_DIR);
   }
-  int attributs;
   
   char * path_request_pipe = malloc(sizeof(char)*1000);
+  if(path_request_pipe==NULL){
+    free(pipes_directory);
+    return EXIT_FAILURE;
+  }
   sprintf(path_request_pipe, "%s/saturnd-request-pipe", pipes_directory);
   int fd = open(path_request_pipe, O_WRONLY | O_APPEND);
 
   char * path_reply_pipe = malloc(sizeof(char)*1000);
+  if(path_reply_pipe==NULL){
+    free(pipes_directory);
+    free(path_request_pipe);
+    return EXIT_FAILURE;
+  }
   sprintf(path_reply_pipe, "%s/saturnd-reply-pipe", pipes_directory);
-  int fd2 = 0;
+  int fd_reply = 0;
 
-  if(fd2==-1 || fd==-1){
+  if(fd==-1){
       goto error;
   }
   char buffer[50];
-  char *reptype = malloc(sizeof(uint16_t));
+  char reptype[20];
   uint64_t id;
   switch(operation){
     case CLIENT_REQUEST_LIST_TASKS :
         write(fd, "LS", 2);
-        fd2 = open(path_reply_pipe, O_RDONLY);
-        read_reply_ls(fd2);
+        fd_reply = open(path_reply_pipe, O_RDONLY);
+        read_reply_ls(fd_reply);
         break;
     case CLIENT_REQUEST_CREATE_TASK :
         ;
@@ -133,9 +144,9 @@ int main(int argc, char * argv[]) {
         commandline_from_arguments(&cl, argc, argv);
         timing_from_strings(&time, minutes_str, hours_str, daysofweek_str);
         write_request_cr(fd, &cl, &time);
-        fd2 = open(path_reply_pipe, O_RDONLY);
-        read(fd2, reptype, sizeof(uint16_t));
-        read(fd2, &id, sizeof(uint64_t));
+        fd_reply = open(path_reply_pipe, O_RDONLY);
+        read(fd_reply, reptype, sizeof(uint16_t));
+        read(fd_reply, &id, sizeof(uint64_t));
         id = htobe64(id);
         printf("%lu\n", id);
         free_commandline(&cl);
@@ -145,8 +156,8 @@ int main(int argc, char * argv[]) {
         taskid = htobe64(taskid);
         memcpy(buffer+sizeof(uint16_t), &taskid, sizeof(uint64_t));
         write(fd, buffer, sizeof(uint16_t)+sizeof(uint64_t));
-        fd2 = open(path_reply_pipe, O_RDONLY);
-        if(read_reply_rm(fd2)==-1){
+        fd_reply = open(path_reply_pipe, O_RDONLY);
+        if(read_reply_rm(fd_reply)==-1){
             goto error;
         }
         break;
@@ -155,8 +166,8 @@ int main(int argc, char * argv[]) {
         taskid = htobe64(taskid);
         memcpy(buffer+sizeof(uint16_t), &taskid, sizeof(uint64_t));
         write(fd, buffer, sizeof(uint16_t)+sizeof(uint64_t));
-        fd2 = open(path_reply_pipe, O_RDONLY);
-        if(read_reply_so_se(fd2)==-1){
+        fd_reply = open(path_reply_pipe, O_RDONLY);
+        if(fd_reply==-1 || read_reply_so_se(fd_reply)==-1){
             goto error;
         }
         break;
@@ -165,23 +176,23 @@ int main(int argc, char * argv[]) {
         taskid = htobe64(taskid);
         memcpy(buffer+sizeof(uint16_t), &taskid, sizeof(uint64_t));
         write(fd, buffer, sizeof(uint16_t)+sizeof(uint64_t));
-        fd2 = open(path_reply_pipe, O_RDONLY);
-        if(read_reply_so_se(fd2)==-1){
+        fd_reply = open(path_reply_pipe, O_RDONLY);
+        if(read_reply_so_se(fd_reply)==-1){
             goto error;
         }
         break;
     case CLIENT_REQUEST_TERMINATE :
         write(fd,"TM", 2);
-        fd2 = open(path_reply_pipe, O_RDONLY);
-        read(fd2, reptype, sizeof(uint16_t));
+        fd_reply = open(path_reply_pipe, O_RDONLY);
+        read(fd_reply, reptype, sizeof(uint16_t));
         break;
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
         memcpy(buffer, "TX", sizeof(uint16_t));
         taskid = htobe64(taskid);
         memcpy(buffer+sizeof(uint16_t), &taskid, sizeof(uint64_t));
         write(fd, buffer, sizeof(uint16_t)+sizeof(uint64_t));
-        fd2 = open(path_reply_pipe, O_RDONLY);
-        if(read_reply_tx(fd2)==-1){
+        fd_reply = open(path_reply_pipe, O_RDONLY);
+        if(read_reply_tx(fd_reply)==-1){
             goto error;
         }
         break;
@@ -189,9 +200,8 @@ int main(int argc, char * argv[]) {
     free(pipes_directory);
     free(path_request_pipe);
     free(path_reply_pipe);
-    free(reptype);
     close(fd);
-    close(fd2);
+    close(fd_reply);
   return EXIT_SUCCESS;
 
  error:
@@ -199,9 +209,8 @@ int main(int argc, char * argv[]) {
   free(pipes_directory);
   free(path_request_pipe);
   free(path_reply_pipe);
-  free(reptype);
   close(fd);
-  close(fd2);
+  close(fd_reply);
   pipes_directory = NULL;
   return EXIT_FAILURE;
 }

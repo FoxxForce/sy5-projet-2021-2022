@@ -19,11 +19,17 @@ int commandline_from_arguments(struct commandline *dest, int argc, char **argv) 
     }
     
     dest->ARGV = malloc(sizeof(char*)*(argc-c));
+    if(dest->ARGV==NULL){
+        return -1;
+    }
     memset(dest->ARGV, 0, sizeof(char*)*(argc-c));
     int length = 0;
     for (int i=0; i<argc-c; i++) {
         length = strlen(argv[c+i]);
         dest->ARGV[i] = malloc(sizeof(char)*(length+1));
+        if(dest->ARGV[i]==NULL){
+            return -1;
+        }
         memset(dest->ARGV[i], 0, length+1);
         if(dest->ARGV[i]==NULL){
             return -1;

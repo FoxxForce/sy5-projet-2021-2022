@@ -5,6 +5,9 @@
 uint64_t read_request_cr(int fd){
     struct timing timingTask;
     char *timingString = malloc(sizeof(struct timing));
+    if(timingString==NULL){
+        return -1;
+    }
     struct commandline commandTask;
     read_timing(fd, &timingTask, timingString);
     read_commandline(fd, &commandTask);
@@ -24,6 +27,9 @@ uint16_t read_request(int fd, const char *path_reply_path){
     switch(operation){
     case CLIENT_REQUEST_LIST_TASKS :
         fd_reply = open(path_reply_path, O_WRONLY);
+        if(fd_reply==-1){
+            return -1;
+        }
         write_reply_ls(fd_reply);
         close(fd_reply);
         break;
@@ -31,6 +37,9 @@ uint16_t read_request(int fd, const char *path_reply_path){
         task_id = read_request_cr(fd);
         task_id = htobe64(task_id);
         fd_reply = open(path_reply_path, O_WRONLY);
+        if(fd_reply==-1){
+            return -1;
+        }
         memcpy(buffer, "OK", sizeof(uint16_t));
         memcpy(buffer+sizeof(uint16_t), &task_id, sizeof(uint64_t));
         write(fd_reply, buffer, sizeof(uint16_t)+sizeof(uint64_t));
@@ -39,6 +48,9 @@ uint16_t read_request(int fd, const char *path_reply_path){
     case CLIENT_REQUEST_REMOVE_TASK :
         read(fd, &task_id, sizeof(uint64_t));
         fd_reply = open(path_reply_path, O_WRONLY);
+        if(fd_reply==-1){
+            return -1;
+        }
         if(remove_task(htobe64(task_id))==0){
             write(fd_reply, "OK", sizeof(uint16_t));
         }else{
@@ -50,6 +62,9 @@ uint16_t read_request(int fd, const char *path_reply_path){
         read(fd, &task_id, sizeof(uint64_t));
         task_id = htobe64(task_id);
         fd_reply = open(path_reply_path, O_WRONLY);
+        if(fd_reply==-1){
+            return -1;
+        }
         if(task_id>nb_task_created() || task_id<0){
             write(fd_reply, "ERNF", sizeof(uint16_t)*2);
         }else if(!task_executed(task_id)){
@@ -64,6 +79,9 @@ uint16_t read_request(int fd, const char *path_reply_path){
         read(fd, &task_id, sizeof(uint64_t));
         task_id = htobe64(task_id);
         fd_reply = open(path_reply_path, O_WRONLY);
+        if(fd_reply==-1){
+            return -1;
+        }
         if(task_id>nb_task_created() || task_id<0){
             write(fd_reply, "ERNF", sizeof(uint16_t)*2);
         }else if(!task_executed(task_id)){
@@ -79,6 +97,9 @@ uint16_t read_request(int fd, const char *path_reply_path){
         read(fd, &task_id, sizeof(uint64_t));
         task_id = htobe64(task_id);
         fd_reply = open(path_reply_path, O_WRONLY);
+        if(fd_reply==-1){
+            return -1;
+        }
         if(task_id>nb_task_created() || task_id<0){
             write(fd_reply, "ERNF", sizeof(uint16_t)*2);
         }else{

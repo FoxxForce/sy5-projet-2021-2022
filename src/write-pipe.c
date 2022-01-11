@@ -29,7 +29,7 @@ void write_request_cr(int fd, struct commandline *cl, struct timing *time){
     write(fd, buffer, position);
 }
 //Envoie la réponse de la requête SO si std=1 sinon celle de SE
-void write_reply_so_se(int fd, uint64_t id, int std){
+int write_reply_so_se(int fd, uint64_t id, int std){
     char file[100];
     if(std==1){
         sprintf(file, "%s/%lu/stdout", TASK_DIR, id);
@@ -39,9 +39,12 @@ void write_reply_so_se(int fd, uint64_t id, int std){
     
     struct stat st;
     if (stat(file, &st) == -1) {
-        exit(1);
+        return -1;
     } 
     int fd_std = open(file, O_RDONLY);
+    if(fd_std==-1){
+        return -1;
+    }
     char std_string[st.st_size+1];
     read(fd_std, std_string, sizeof(char)*st.st_size);
     std_string[st.st_size] = '\0';
@@ -53,10 +56,11 @@ void write_reply_so_se(int fd, uint64_t id, int std){
     memcpy(buffer+sizeof(uint16_t)+sizeof(uint32_t), std_string, st.st_size);
     write(fd, buffer, st.st_size + sizeof(uint16_t)+sizeof(uint32_t));
     close(fd_std);
+    return 0;
 }
 
 //Envoie la réponse d'une requête TX à cassini
-void write_reply_tx(int fd, uint64_t id){
+int write_reply_tx(int fd, uint64_t id){
     char file[100];
     struct stat st;
     sprintf(file, "%s/%lu/exitcodes", TASK_DIR, id);
@@ -75,6 +79,9 @@ void write_reply_tx(int fd, uint64_t id){
     uint16_t exitcode;
     nb_exitcodes = htobe32(nb_exitcodes);
     int fd_exitcodes = open(file, O_RDONLY);
+    if(fd_exitcodes==-1){
+        return -1;
+    }
     for(int i=0; i<nb_exitcodes; i++){
         read(fd_exitcodes, &time, sizeof(int64_t));
         read(fd_exitcodes, &exitcode, sizeof(uint16_t));
@@ -87,6 +94,7 @@ void write_reply_tx(int fd, uint64_t id){
     }
     write(fd, buffer, position);
     close(fd_exitcodes);
+    return 0;
 }
 
 //Envoie la réponse d'une requête LS à cassini

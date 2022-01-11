@@ -101,7 +101,7 @@ int remove_task(int task_id){
 }
 
 //Ecrit dans cl la commande de la tâche id
-void task_commandline(uint64_t id, struct commandline *cl){
+int task_commandline(uint64_t id, struct commandline *cl){
     char file[150];
     sprintf(file, "%s/%lu/command", TASK_DIR, id);
     struct stat st;
@@ -120,6 +120,9 @@ void task_commandline(uint64_t id, struct commandline *cl){
         }
     }
     char **argv = malloc(sizeof(char *)*(1+nb_words));
+    if(argv==NULL){
+        return -1;
+    }
     cl->ARGC = nb_words;
     cl->ARGV = argv;
     nb_words = 0;
@@ -127,6 +130,9 @@ void task_commandline(uint64_t id, struct commandline *cl){
     for(int i=0; i<st.st_size+1; i++){
         if(command[i]=='\n'){
             char *word = malloc(sizeof(char)*(nb_char+1));
+            if(argv==NULL){
+                return -1;
+            }       
             for(int j=0; j<nb_char; j++){
                 word[j] = command[i-nb_char+j];
             }
@@ -139,6 +145,7 @@ void task_commandline(uint64_t id, struct commandline *cl){
         nb_char++;
     }
     argv[nb_words] = NULL;
+    return 0;
 }
 
 //Ecrit dans time le timing de la tâche id
@@ -205,12 +212,19 @@ int exitcode_task(int pid_child, uint16_t exitcode){
             continue;
         }
         fd_pid = open(file, O_RDONLY);
+        if(fd_pid==-1){
+            return -1;
+        }
         read(fd_pid, pid_char, sizeof(int));
         sscanf(pid_char, "%d", &pid);
         if(pid_child==pid){
+            printf("%d==%d exit: %d\n", pid_child, pid, exitcode);
             unlink(file);
             sprintf(file, "%s/%lu/exitcodes", TASK_DIR, i);
             fd_exitcode = open(file, O_WRONLY | O_APPEND);
+            if(fd_exitcode==-1){
+                return -1;
+            }
             write(fd_exitcode, &exitcode, sizeof(uint16_t));
             close(fd_exitcode);
             close(fd_pid);
@@ -222,13 +236,11 @@ int exitcode_task(int pid_child, uint16_t exitcode){
 }
 
 //Tue tous les processus exécutant une tâche
-void kill_childs(){
+int kill_childs(){
     char file[100];
     int nb_task = nb_task_created();
     struct stat st;
     int fd_pid;
-    int fd_exitcode;
-    char pid_char[25];
     int pid;
     for(uint64_t i=1; i<nb_task+1; i++){
         sprintf(file, "%s/%lu/pid", TASK_DIR,i);
@@ -236,10 +248,13 @@ void kill_childs(){
             continue;
         }
         fd_pid = open(file, O_RDONLY);
-        read(fd_pid, pid_char, sizeof(int));
-        sscanf(pid_char, "%u", &pid);
+        if(fd_pid==-1){
+            return -1;
+        }
+        read(fd_pid, &pid, sizeof(int));
         kill(pid,SIGKILL);
         close(fd_pid);
     }
+    return 0;
 }
 

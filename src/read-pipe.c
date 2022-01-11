@@ -1,10 +1,13 @@
 #include "../include/read-pipe.h"
 
-void read_reply_ls(int fd){
-    char *reptype = malloc(sizeof(uint16_t));
+int read_reply_ls(int fd){
+    char reptype [20];
     read(fd, reptype, sizeof(uint16_t));
     struct timing timingTask;
-    char *timingString = malloc(sizeof(struct timing));
+    char *timingString = malloc(sizeof(struct timing)+10);
+    if(timingString==NULL){
+        return -1;
+    }
     uint32_t nbTasks;
     read(fd, &nbTasks, sizeof(uint32_t));
     nbTasks = htobe32(nbTasks);
@@ -15,12 +18,10 @@ void read_reply_ls(int fd){
         read_commandline(fd, &commandTask);
         printf("%s ", timingString);
         print_commandline(&commandTask);
-    }
-    if(nbTasks>0){
         free_commandline(&commandTask);
-        free(timingString);
     }
-    free(reptype);
+    free(timingString);
+    return 0;
 }
 
 void read_timing(int fd, struct timing *timingTask, char *timingString){
@@ -32,22 +33,29 @@ void read_timing(int fd, struct timing *timingTask, char *timingString){
     timing_string_from_timing(timingString, timingTask);
 }
 
-void read_commandline(int fd, struct commandline *commandTask){
+int read_commandline(int fd, struct commandline *commandTask){
     uint32_t argc;
     read(fd, &argc, sizeof(uint32_t));
     argc = htobe32(argc);
     commandTask->ARGC = argc;
     commandTask->ARGV = malloc(sizeof(char *)*argc);
+    if(commandTask->ARGV==NULL){
+        return -1;
+    }
     memset(commandTask->ARGV, 0, sizeof(char *)*argc);
     uint32_t length;
     for(int i=0; i<commandTask->ARGC; i++){
         read(fd, &length, sizeof(uint32_t));
         length = htobe32(length);
         commandTask->ARGV[i] = malloc(sizeof(char)*(length+1));
+        if(commandTask->ARGV[i]==NULL){
+            return -1;
+        }
         memset(commandTask->ARGV[i], 0, length+1);
         read(fd, commandTask->ARGV[i], length);
         commandTask->ARGV[i][length] = '\0';
     }
+    return 0;
 }
 
 void read_id(int fd){
@@ -99,6 +107,9 @@ int read_reply_so_se(int fd) {
     read(fd, &length, sizeof(uint32_t));
     length = htobe32(length);
     char *content = malloc(sizeof(char)*(length+1));
+    if(content==NULL){
+        return -1;
+    }
     read(fd, content, sizeof(char)*length);
     content[length] = '\0';
     printf("%s", content);
@@ -111,13 +122,9 @@ int read_reply_rm(int fd) {
     read(fd, &reptype, sizeof(uint16_t));
     reptype = htobe16(reptype);
     if (reptype == SERVER_REPLY_ERROR) {
-        char *error = malloc(sizeof(uint16_t));
-        if (error == NULL) {
-            exit(1);
-        }
-        read(fd, error, sizeof(uint16_t));
-        printf("%s\n", error);
-        free(error);
+        uint16_t error;
+        read(fd, &error, sizeof(uint16_t));
+        printf("%d\n", htobe16(error));
         return -1;
     }
     return 0;
